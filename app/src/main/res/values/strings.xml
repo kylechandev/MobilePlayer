@@ -1,0 +1,34 @@
+<resources>
+    <string name="app_name">我不是播放器</string>
+    <string name="player_name">我不是播放器(真的不是)</string>
+    <string name="login_interface">login interface</string>
+    <string name="no_local_video">没有发现视频…</string>
+    <string name="top_logo">顶部logo</string>
+    <string name="global_search">全网搜索</string>
+    <string name="game">游戏</string>
+    <string name="history">历史</string>
+    <string name="default_video_icon">默认Vedio图标</string>
+    <string name="local_music">本地音乐</string>
+    <string name="local_video">本地视频</string>
+    <string name="net_resource">网络资源</string>
+    <string name="net_music">网络音乐</string>
+    <string name="battery">电池</string>
+    <string name="no_net">没有网络…</string>
+    <string name="play_icon">播放图标</string>
+    <string name="video_image">视频image</string>
+    <string name="header_hint_refresh_normal">下拉刷新</string>
+    <string name="header_hint_refresh_ready">释放刷新</string>
+    <string name="header_hint_refresh_loading">正在刷新…</string>
+    <string name="header_hint_refresh_time">刷新时间：</string>
+    <string name="footer_hint_load_normal">加载更多</string>
+    <string name="footer_hint_load_ready">释放加载更多</string>
+    <string name="title">标题</string>
+    <string name="no_local_music">没有发现音乐…</string>
+    <string name="share">分享</string>
+    <string name="back">返回</string>
+    <string name="current_playing_music">当前正在播放歌曲</string>
+    <string name="play_list">播放列表</string>
+    <string name="play">播放</string>
+    <string name="music_info_image">歌曲信息图片</string>
+    <string name="navigation">导航</string>
+</resources>

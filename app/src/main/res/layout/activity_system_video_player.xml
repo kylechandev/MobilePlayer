@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".activity.SystemVideoPlayerActivity">
+
+    <com.fairhand.mobileplayer.widget.CustomVideoView
+        android:id="@+id/video_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_centerInParent="true" />
+
+    <!--自定义视频控制器-->
+    <include
+        android:id="@+id/media_controller"
+        layout="@layout/media_controller" />
+
+    <!--缓冲-->
+    <include
+        android:id="@+id/buffer_face"
+        layout="@layout/buffer_face" />
+
+    <!--加载-->
+    <include
+        android:id="@+id/loading_face"
+        layout="@layout/loading_face" />
+
+</RelativeLayout>
