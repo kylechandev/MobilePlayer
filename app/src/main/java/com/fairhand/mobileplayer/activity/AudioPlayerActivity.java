@@ -46,28 +46,29 @@ import de.hdodenhof.circleimageview.CircleImageView;
 
 /**
  * 音乐播放器
+ * @author FairHand
  */
 public class AudioPlayerActivity extends BaseActivity implements View.OnClickListener {
     
     private static final String TAG = AudioPlayerActivity.class.getSimpleName();
     
     /**
-     * 播放进度更新
+     * 播放进度更新Message What
      */
     private static final int PROGRESS = 1;
     
     /**
-     * 显示歌词
+     * 显示歌词Message What
      */
     private static final int SHOW_LYRIC = 2;
     
     /**
-     * 更新控制器信息
+     * 更新控制器信息Message What
      */
     private static final int UPDATE_CONTROLLER_UI = 3;
     
     /**
-     * 更新歌曲信息
+     * 更新歌曲信息Message What
      */
     private static final int UPDATE_MUSIC_UI = 4;
     
@@ -204,6 +205,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
         musicMenu.setOnClickListener(this);
         musicFaceBackButton.setOnClickListener(this);
         musicShareButton.setOnClickListener(this);
+        
     }
     
     /**
@@ -533,7 +535,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
                         e.printStackTrace();
                     }
                     break;
-                
+                    
                 default:
                     break;
             }
@@ -725,6 +727,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
      * @param isPlaying 是否在播放
      */
     private void backData(boolean isPlaying) {
+        Log.d(TAG, "准备返回数据啦啦啦啦啦啦");
         Intent returnData = new Intent();
         returnData.putExtra("ISPLAYING", isPlaying);
         returnData.putExtra("ISPRESSPREORNEXT", isPressPreOrNext);

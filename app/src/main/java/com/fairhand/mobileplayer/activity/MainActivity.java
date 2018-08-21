@@ -1,5 +1,7 @@
 package com.fairhand.mobileplayer.activity;
 
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -10,10 +12,10 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
+import android.widget.Button;
+import android.widget.Toast;
 
 import com.fairhand.mobileplayer.R;
 import com.fairhand.mobileplayer.pager.AudioPagerFragment;
@@ -24,8 +26,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
-    
-    private static final String TAG = MainActivity.class.getSimpleName();
     
     private ViewPager mViewPager;
     
@@ -38,9 +38,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      */
     private List<Fragment> mFragments;
     
-    private ImageView navigation;
+    private Button navigation;
     
-    private ImageView search;
+    private Button search;
     
     /**
      * 存放Tab的标题
@@ -64,6 +64,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * 初始化控件
      */
     private void initViews() {
+    
+        // 融合状态栏
+        if (Build.VERSION.SDK_INT >= 21) {
+            View decorView = getWindow().getDecorView();
+            int option = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+            if (Build.VERSION.SDK_INT >= 23) {
+                decorView.setSystemUiVisibility(option | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+            } else {
+                decorView.setSystemUiVisibility(option);
+            }
+            getWindow().setStatusBarColor(Color.TRANSPARENT);
+        }
         
         mTabLayout = findViewById(R.id.tablayout);
         
@@ -78,7 +90,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         
         mFragments = new ArrayList<>();
         
-        tabNames = new String[] { "本地视频", "本地音乐", "网络资源"};
+        tabNames = new String[] { "视频", "音乐", "网络"};
         
     }
     
@@ -159,10 +171,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.navigation :
-                Log.d(TAG, "导航点击了");
                 mDrawerLayout.openDrawer(GravityCompat.START);// 点击打开导航菜单
                 break;
             case R.id.search :
+                Toast.makeText(MainActivity.this, "搜索", Toast.LENGTH_SHORT).show();
                 break;
             default :
                 break;

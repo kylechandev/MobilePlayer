@@ -2,10 +2,12 @@ package com.fairhand.mobileplayer.pager;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -54,6 +56,10 @@ import java.util.Objects;
 
 import static android.app.Activity.RESULT_OK;
 
+/**
+ * @author FairHand
+ * @describe 音乐Pager
+ */
 public class AudioPagerFragment extends Fragment {
     
     private static final String TAG = AudioPagerFragment.class.getSimpleName();
@@ -96,32 +102,12 @@ public class AudioPagerFragment extends Fragment {
     
     private View rootView;
     
+    private BroadcastReceiver mReceiver;
+    
     /**
      * 装数据集合
      */
     private ArrayList<MediaItem> mediaItems;
-    
-    @SuppressLint("HandlerLeak")
-    private Handler handler = new Handler() {
-        
-        @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            
-            if ((mediaItems != null) && (mediaItems.size() > 0)) {
-                // 有数据 设置设配器 提示文本隐藏
-                AudioPagerAdapter audioPagerAdapter = new AudioPagerAdapter(context,
-                        mediaItems);
-                listView.setAdapter(audioPagerAdapter);
-                noMedia.setVisibility(View.GONE);
-            } else {
-                // 没有数据 提示文本显示
-                noMedia.setVisibility(View.VISIBLE);
-                noMedia.setText("没有发现本地音乐...");
-            }
-            loading.setVisibility(View.GONE);
-        }
-    };
     
     /**
      * 当Activity与Fragment创建关联时调用
@@ -140,40 +126,12 @@ public class AudioPagerFragment extends Fragment {
         
     }
     
-    /**
-     * 绑定服务后的回调接口
-     */
-    private ServiceConnection mServiceConnection = new ServiceConnection() {
-        /**
-         * 连接成功
-         */
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            iMusicPlayerService = IMusicPlayerService.Stub.asInterface(service);
-        }
-        
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            
-        }
-    };
-    
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "本地音乐初始化...");
         
-        // 申请获取读取sdcard权限
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            if (ContextCompat.checkSelfPermission(context,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(Objects.requireNonNull(getActivity()),
-                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
-            } else {
-                getDataFromLocal();
-            }
-        }
-        
+        initData();
     }
     
     @Nullable
@@ -230,7 +188,7 @@ public class AudioPagerFragment extends Fragment {
         barMusicMenu.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                
+            
             }
         });
         
@@ -282,54 +240,91 @@ public class AudioPagerFragment extends Fragment {
     }
     
     /**
-     * 返回数据回调方法（目的设置bar的播放暂停图标）
+     * 初始化数据
      */
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        switch (requestCode) {
-            case 999:
-                if (resultCode == RESULT_OK) {
-                    boolean isPlaying = data.getBooleanExtra("ISPLAYING", false);
-                    
-                    if (isPlaying) {
-                        barPlayOrPauseMusic.setImageResource(R.drawable.music_bar_pause_selector);
-                    } else {
-                        barPlayOrPauseMusic.setImageResource(R.drawable.music_bar_play_selector);
-                    }
-                    
-                    // 更新bar的歌曲信息
-                    String name = data.getStringExtra("MUSICNAME");
-                    String artist = data.getStringExtra("MUSICARTIST");
-                    String albumart = data.getStringExtra("ALBUMART");
-                    barMusicName.setText(name);
-                    barMusician.setText(artist);
-                    setMusicImage(albumart);
-                }
-                break;
-            default:
-                break;
+    private void initData() {
+        // 申请获取读取sdcard权限
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            if (ContextCompat.checkSelfPermission(context,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(Objects.requireNonNull(getActivity()),
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+            } else {
+                getDataFromLocal();
+            }
         }
+        
+        // 注册广播
+        mReceiver = new MyReceiver();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(MusicPlayerService.UPDATE_VIEW_INFO);
+        context.registerReceiver(mReceiver, filter);
     }
     
     /**
-     * 申请获取权限回调方法
+     * 绑定服务后的回调接口
      */
-    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        switch (requestCode) {
-            case 1:
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    getDataFromLocal();
-                } else {
-                    Toast.makeText(context, "无法获取权限", Toast.LENGTH_SHORT).show();
-                    Objects.requireNonNull(getActivity()).finish();
-                }
-                break;
-            default:
-                break;
+    private ServiceConnection mServiceConnection = new ServiceConnection() {
+        /**
+         * 连接成功
+         */
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            iMusicPlayerService = IMusicPlayerService.Stub.asInterface(service);
+        }
+        
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+        
+        }
+    };
+    
+    /**
+     * 消息处理
+     */
+    @SuppressLint("HandlerLeak")
+    private Handler handler = new Handler() {
+        
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            
+            if ((mediaItems != null) && (mediaItems.size() > 0)) {
+                // 有数据 设置设配器 提示文本隐藏
+                AudioPagerAdapter audioPagerAdapter = new AudioPagerAdapter(context,
+                        mediaItems);
+                listView.setAdapter(audioPagerAdapter);
+                noMedia.setVisibility(View.GONE);
+            } else {
+                // 没有数据 提示文本显示
+                noMedia.setVisibility(View.VISIBLE);
+                noMedia.setText("没有发现本地音乐...");
+            }
+            loading.setVisibility(View.GONE);
+        }
+    };
+    
+    /**
+     * 我的广播类
+     *
+     * @author FairHand
+     * @describe 接收MusicPlayerService发送的广播更新bar的信息
+     */
+    private class MyReceiver extends BroadcastReceiver {
+        
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            try {
+                // 获取到下一首歌的信息并更新bar的信息
+                String name = iMusicPlayerService.getCurrentPlayAudioName();
+                String artist = iMusicPlayerService.getCurrentPlayAudioArtist();
+                String album = iMusicPlayerService.getAlbumArt(iMusicPlayerService.getAlbumId());
+                barMusicName.setText(name);
+                barMusician.setText(artist);
+                setMusicImage(album);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
         }
     }
     
@@ -416,4 +411,77 @@ public class AudioPagerFragment extends Fragment {
         
     }
     
+    /**
+     * 返回数据回调方法（目的设置bar的播放暂停图标）
+     */
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        switch (requestCode) {
+            case 999:
+                if (resultCode == RESULT_OK) {
+                    Log.d(TAG, "返回数据已收到！！！！！！！！！！！！");
+                    boolean isPlaying = data.getBooleanExtra("ISPLAYING", false);
+                    
+                    if (isPlaying) {
+                        barPlayOrPauseMusic.setImageResource(R.drawable.music_bar_pause_selector);
+                    } else {
+                        barPlayOrPauseMusic.setImageResource(R.drawable.music_bar_play_selector);
+                    }
+                    
+                    // 更新bar的歌曲信息
+                    String name = data.getStringExtra("MUSICNAME");
+                    String artist = data.getStringExtra("MUSICARTIST");
+                    String albumart = data.getStringExtra("ALBUMART");
+                    barMusicName.setText(name);
+                    barMusician.setText(artist);
+                    setMusicImage(albumart);
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    
+    /**
+     * 申请获取权限回调方法
+     */
+    @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case 1:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    getDataFromLocal();
+                } else {
+                    Toast.makeText(context, "无法获取权限", Toast.LENGTH_SHORT).show();
+                    Objects.requireNonNull(getActivity()).finish();
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    
+    @Override
+    public void onDestroy() {
+        
+        // 取消注册广播
+        if (mReceiver != null) {
+            context.unregisterReceiver(mReceiver);
+            mReceiver = null;
+        }
+        
+        // 解绑服务
+        if (mServiceConnection != null) {
+            context.unbindService(mServiceConnection);
+            mServiceConnection = null;
+        }
+        
+        // 移除所有消息
+        handler.removeCallbacksAndMessages(null);
+        
+        super.onDestroy();
+    }
 }

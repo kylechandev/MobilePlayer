@@ -18,8 +18,7 @@
             android:layout_marginLeft="6dp"
             android:layout_marginStart="6dp"
             android:contentDescription="@string/video_image"
-            android:scaleType="fitXY"
-            android:src="@drawable/video_default" />
+            android:scaleType="fitXY" />
 
         <ImageView
             android:layout_width="30dp"

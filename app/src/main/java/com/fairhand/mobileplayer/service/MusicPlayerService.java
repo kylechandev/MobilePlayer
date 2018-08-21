@@ -31,13 +31,14 @@ import java.util.Random;
 
 /**
  * 音乐服务类
+ * @author FairHand
  */
 public class MusicPlayerService extends Service {
     
     /**
-     * 广播发送KEY
+     * 广播发送 KEY
      */
-    // public static final String OPENAUDIO = "com.fairhand.mobileplayer.OPENAUDIO";
+    public static final String UPDATE_VIEW_INFO = "com.fairhand.mobileplayer.OPENAUDIO";
     
     private ArrayList<MediaItem> mediaItems;
     
@@ -260,6 +261,11 @@ public class MusicPlayerService extends Service {
         public String getAlbumArt(long album_id) {
             return service.getAlbumArt(album_id);
         }
+    
+        @Override
+        public boolean isCompletion() {
+            return service.isCompletion();
+        }
     };
     
     @Nullable
@@ -297,7 +303,7 @@ public class MusicPlayerService extends Service {
                     @Override
                     public void onPrepared(MediaPlayer mp) {
                         // 通知activity获取歌曲信息
-                        // notifyAcquireMusicIcon(OPENAUDIO);
+                        // notifyAcquireMusicIcon(UPDATE_VIEW_INFO);
                         
                         // 发消息
                         EventBus.getDefault().post("MESSAGE_EVENT");
@@ -323,6 +329,7 @@ public class MusicPlayerService extends Service {
                             int randPosition = new Random().nextInt(mediaItems.size());// 获取一个随机位置播放
                             openAudio(randPosition);
                         }
+                        notifyPlayCompletion(UPDATE_VIEW_INFO);
                     }
                 });
                 
@@ -342,6 +349,14 @@ public class MusicPlayerService extends Service {
         } else {
             Toast.makeText(MusicPlayerService.this, "还没有数据", Toast.LENGTH_SHORT).show();
         }
+    }
+    
+    /**
+     * 通过action发送广播给AudioPagerFragment更新bar的信息
+     */
+    private void notifyPlayCompletion(String action) {
+        Intent intent = new Intent(action);
+        sendBroadcast(intent);
     }
     
     //    /**
@@ -500,6 +515,30 @@ public class MusicPlayerService extends Service {
     }
     
     /**
+     * 判断是否正在播放
+     */
+    private boolean isPlaying() {
+        return mMediaPlayer.isPlaying();
+    }
+    
+    /**
+     * 设置音频进度条拖动播放
+     *
+     * @param position 拖动到的位置
+     */
+    private void seekTo(int position) {
+        mMediaPlayer.seekTo(position);
+    }
+    
+    /**
+     * 判断是否播放完毕
+     */
+    private boolean isCompletion() {
+        return false;
+    }
+    
+    
+    /**
      * 获取到本地音乐的专辑图片存储地址
      */
     private String getAlbumArt(long album_id) {
@@ -517,22 +556,6 @@ public class MusicPlayerService extends Service {
         cursor.close();
         return album_art;
         
-    }
-    
-    /**
-     * 判断是否正在播放
-     */
-    private boolean isPlaying() {
-        return mMediaPlayer.isPlaying();
-    }
-    
-    /**
-     * 设置音频进度条拖动播放
-     *
-     * @param position 拖动到的位置
-     */
-    private void seekTo(int position) {
-        mMediaPlayer.seekTo(position);
     }
     
 }

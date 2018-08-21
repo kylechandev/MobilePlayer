@@ -92,4 +92,9 @@ interface IMusicPlayerService {
          */
         String getAlbumArt(long album_id);
 
+        /**
+         * 判断是否播放完毕
+         */
+        boolean isCompletion();
+
 }
