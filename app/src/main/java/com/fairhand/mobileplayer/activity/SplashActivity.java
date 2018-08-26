@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Handler;
 import android.os.Bundle;
 
+import com.fairhand.mobileplayer.ActivityCollector;
 import com.fairhand.mobileplayer.R;
 
 /**
@@ -18,6 +19,7 @@ public class SplashActivity extends BaseActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
+        ActivityCollector.addActivity(this);
         
         handler.postDelayed(new Runnable() {
             @Override
@@ -27,6 +29,14 @@ public class SplashActivity extends BaseActivity {
             }
         }, 800);
         
+    }
+    
+    @Override
+    protected void onDestroy() {
+        ActivityCollector.removeActivity(this);
+        // 移除所有的消息和回调
+        handler.removeCallbacksAndMessages(null);
+        super.onDestroy();
     }
     
     /**
@@ -39,10 +49,4 @@ public class SplashActivity extends BaseActivity {
         finish();
     }
     
-    @Override
-    protected void onDestroy() {
-        // 移除所有的消息和回调
-        handler.removeCallbacksAndMessages(null);
-        super.onDestroy();
-    }
 }

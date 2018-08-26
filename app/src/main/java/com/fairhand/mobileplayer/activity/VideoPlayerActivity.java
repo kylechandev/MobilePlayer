@@ -27,6 +27,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.fairhand.mobileplayer.ActivityCollector;
 import com.fairhand.mobileplayer.R;
 import com.fairhand.mobileplayer.domain.MediaItem;
 import com.fairhand.mobileplayer.utils.JudgeIsNetUriUtil;
@@ -41,9 +42,9 @@ import java.util.Date;
 /**
  * 自定义系统播放器
  */
-public class SystemVideoPlayerActivity extends AppCompatActivity implements View.OnClickListener {
+public class VideoPlayerActivity extends AppCompatActivity implements View.OnClickListener {
     
-    private static final String TAG = SystemVideoPlayerActivity.class.getSimpleName();
+    private static final String TAG = VideoPlayerActivity.class.getSimpleName();
     
     /**
      * 视频进度的更新
@@ -203,6 +204,41 @@ public class SystemVideoPlayerActivity extends AppCompatActivity implements View
     private TextView netBufferSpeed;
     private TextView loadingSpeed;
     
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);// 先初始化父类，再初始化子类
+        setContentView(R.layout.activity_video_player);
+        ActivityCollector.addActivity(this);
+        
+        initViews();// 初始化视图
+        
+        initData();// 初始化数据
+        
+        setListener();// 设置监听
+        
+        getDatePath();// 获取视频播放路径
+        
+        setDataPath();// 设置视频播放路径
+        
+        // 设置控制面板
+        // mVideoView.setMediaController(new MediaController(this));// 系统自带
+    }
+    
+    @Override
+    protected void onDestroy() {
+        ActivityCollector.removeActivity(this);
+        // 移除所有消息
+        handler.removeCallbacksAndMessages(null);
+        // 释放资源时，先释放子类，再释放父类
+        if (myReceiver != null) {
+            // 销毁时取消注册广播
+            unregisterReceiver(myReceiver);
+            myReceiver = null;
+        }
+        
+        super.onDestroy();
+    }
+    
     /**
      * Find the Views in the layout<br />
      * <br />
@@ -349,14 +385,14 @@ public class SystemVideoPlayerActivity extends AppCompatActivity implements View
         if ((mediaItems != null) && (mediaItems.size() > 0)) {
             if (mediaItems.size() == 1) {
                 // 若只有一个视频
-                Toast.makeText(SystemVideoPlayerActivity.this,
+                Toast.makeText(VideoPlayerActivity.this,
                         "一共只有一个视频哦", Toast.LENGTH_SHORT).show();
             } else {
                 if ((position > mediaItems.size() - 1) && (buttonWhat == videoNext)) {
-                    Toast.makeText(SystemVideoPlayerActivity.this,
+                    Toast.makeText(VideoPlayerActivity.this,
                             "这是最后一个视频啦", Toast.LENGTH_SHORT).show();
                 } else if ((position < 0) && (buttonWhat == videoPre)) {
-                    Toast.makeText(SystemVideoPlayerActivity.this,
+                    Toast.makeText(VideoPlayerActivity.this,
                             "已经是第一个视频啦", Toast.LENGTH_SHORT).show();
                 }
             }
@@ -426,7 +462,7 @@ public class SystemVideoPlayerActivity extends AppCompatActivity implements View
                 case SHOW_SPEED :
                     // 获取到网速
                     String netSpeedValue =
-                            ShowNetSpeedUtil.getNetSpeed(SystemVideoPlayerActivity.this);
+                            ShowNetSpeedUtil.getNetSpeed(VideoPlayerActivity.this);
                     // 显示网络速度
                     loadingSpeed.setText("正在加载中..." + netSpeedValue);
                     netBufferSpeed.setText("缓存中..." + netSpeedValue);
@@ -445,25 +481,6 @@ public class SystemVideoPlayerActivity extends AppCompatActivity implements View
         @SuppressLint("SimpleDateFormat")
         SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm");
         return dateFormat.format(new Date());
-    }
-    
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);// 先初始化父类，再初始化子类
-        setContentView(R.layout.activity_system_video_player);
-        
-        initViews();// 初始化视图
-        
-        initData();// 初始化数据
-        
-        setListener();// 设置监听
-        
-        getDatePath();// 获取视频播放路径
-        
-        setDataPath();// 设置视频播放路径
-        
-        // 设置控制面板
-        // mVideoView.setMediaController(new MediaController(this));// 系统自带
     }
     
     /**
@@ -485,7 +502,7 @@ public class SystemVideoPlayerActivity extends AppCompatActivity implements View
             isNetUri = JudgeIsNetUriUtil.isNetUri(uri.toString());
             mCustomVideoView.setVideoURI(uri);
         } else {
-            Toast.makeText(SystemVideoPlayerActivity.this,
+            Toast.makeText(VideoPlayerActivity.this,
                     "没有传入数据", Toast.LENGTH_SHORT).show();
         }
     }
@@ -700,7 +717,7 @@ public class SystemVideoPlayerActivity extends AppCompatActivity implements View
         mCustomVideoView.setOnErrorListener(new MediaPlayer.OnErrorListener() {
             @Override
             public boolean onError(MediaPlayer mp, int what, int extra) {
-                Toast.makeText(SystemVideoPlayerActivity.this,
+                Toast.makeText(VideoPlayerActivity.this,
                         "播放出错了", Toast.LENGTH_SHORT).show();
                 return false;// 返回false弹出提示对话框，反之不弹
             }
@@ -710,7 +727,7 @@ public class SystemVideoPlayerActivity extends AppCompatActivity implements View
         mCustomVideoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mp) {
-                Toast.makeText(SystemVideoPlayerActivity.this,
+                Toast.makeText(VideoPlayerActivity.this,
                         "播放完成了", Toast.LENGTH_SHORT).show();
                 // 播放结束将按钮设置为播放
                 videoPause.setBackgroundResource(R.drawable.video_start_selector);
@@ -827,21 +844,6 @@ public class SystemVideoPlayerActivity extends AppCompatActivity implements View
             // 设置按钮为声音
             videoVoice.setBackgroundResource(R.drawable.voice_selector);
         }
-    }
-    
-    @Override
-    protected void onDestroy() {
-        
-        // 移除所有消息
-        handler.removeCallbacksAndMessages(null);
-        // 释放资源时，先释放子类，再释放父类
-        if (myReceiver != null) {
-            // 销毁时取消注册广播
-            unregisterReceiver(myReceiver);
-            myReceiver = null;
-        }
-        
-        super.onDestroy();
     }
     
     /**

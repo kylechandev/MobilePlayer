@@ -45,8 +45,21 @@ public class MediaItem implements Serializable {
     /**
      * 专辑图片ID
      */
-    
     private long albumId;
+    
+    /**
+     * 专辑名
+     */
+     
+    private String album;
+    
+    public String getAlbum() {
+        return album;
+    }
+    
+    public void setAlbum(String album) {
+        this.album = album;
+    }
     
     public long getAlbumId() {
         return albumId;
@@ -111,4 +124,5 @@ public class MediaItem implements Serializable {
     public void setMusicArtist(String musicArtist) {
         this.musicArtist = musicArtist;
     }
+    
 }

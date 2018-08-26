@@ -73,4 +73,22 @@ public class SaveCacheUtil {
         return sharedPreferences.getInt(positionKey, 0);
     }
     
+    /**
+     * 保存当前播放位置
+     */
+    public static void putCurrentPosition(Context context, String key, int values) {
+        SharedPreferences.Editor editor
+                = context.getSharedPreferences("CURRENTPOSITION", Context.MODE_PRIVATE).edit();
+        editor.putInt(key, values).apply();
+    }
+    
+    /**
+     * 得到当前播放位置
+     */
+    public static int getCurrentPosition(Context context, String key) {
+        SharedPreferences sharedPreferences =
+                context.getSharedPreferences("CURRENTPOSITION", Context.MODE_PRIVATE);
+        return sharedPreferences.getInt(key, 0);
+    }
+    
 }

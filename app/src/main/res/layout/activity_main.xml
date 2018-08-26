@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?><!--侧滑菜单-->
 <android.support.v4.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/drawer_layout"
     android:layout_width="match_parent"
@@ -14,8 +15,17 @@
         android:fitsSystemWindows="true"
         android:orientation="vertical">
 
-        <!--顶部标题-->
-        <include layout="@layout/custom_bar_layout" />
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <!--顶部标题-->
+            <include
+                android:id="@+id/top_bar"
+                layout="@layout/custom_bar_layout" />
+
+        </RelativeLayout>
+
 
         <!--主要内容-->
         <FrameLayout
@@ -33,13 +43,12 @@
 
     </LinearLayout>
 
-    <TextView
+    <android.support.design.widget.NavigationView
+        android:id="@+id/nav_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:background="@android:color/white"
-        android:fitsSystemWindows="true"
-        android:text="你好啊" />
-
+        app:headerLayout="@layout/nav_header"
+        app:menu="@menu/nav_menu" />
 
 </android.support.v4.widget.DrawerLayout>

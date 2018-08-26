@@ -32,8 +32,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.fairhand.mobileplayer.ActivityCollector;
 import com.fairhand.mobileplayer.IMusicPlayerService;
 import com.fairhand.mobileplayer.R;
+import com.fairhand.mobileplayer.domain.MediaItem;
 import com.fairhand.mobileplayer.service.MusicPlayerService;
 import com.fairhand.mobileplayer.utils.TimeConvertUtil;
 import com.fairhand.mobileplayer.widget.CustomLyricView;
@@ -42,15 +44,23 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.util.ArrayList;
+
 import de.hdodenhof.circleimageview.CircleImageView;
 
 /**
- * 音乐播放器
+ * 音乐播放器界面
+ *
  * @author FairHand
  */
 public class AudioPlayerActivity extends BaseActivity implements View.OnClickListener {
     
     private static final String TAG = AudioPlayerActivity.class.getSimpleName();
+    
+    /**
+     * 传入audio对象序列的KEY
+     */
+    private static final String AUDIO_LIST = "audiolist";
     
     /**
      * 播放进度更新Message What
@@ -71,6 +81,11 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
      * 更新歌曲信息Message What
      */
     private static final int UPDATE_MUSIC_UI = 4;
+    
+    /**
+     * 校准播放模式
+     */
+    private static final int CHECKPLAYMODE = 5;
     
     /**
      * 声音管理器（调节声音）
@@ -96,8 +111,6 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
      * 点击音频的位置
      */
     private int position;
-    
-    // private MyReceiver receiver;
     
     /**
      * 动画
@@ -149,6 +162,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_audio_player);
+        ActivityCollector.addActivity(this);
         
         initView();// 初始化组件
         
@@ -169,6 +183,30 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
         objectAnimator.setRepeatMode(ObjectAnimator.RESTART);// 重复播放模式
         objectAnimator.start();// 启动动画
         
+    }
+    
+    @Override
+    protected void onDestroy() {
+        ActivityCollector.removeActivity(this);
+        // 取消注册广播
+        /*if (receiver != null) {
+            unregisterReceiver(receiver);
+            receiver = null;
+        }*/
+        
+        // 取消注册EventBus
+        EventBus.getDefault().unregister(this);
+        
+        // 移除所有的消息
+        handler.removeCallbacksAndMessages(null);
+        
+        // 解绑服务
+        if (mServiceConnection != null) {
+            unbindService(mServiceConnection);
+            mServiceConnection = null;
+        }
+        
+        super.onDestroy();
     }
     
     /**
@@ -298,26 +336,27 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
      * 初始化数据
      */
     private void initData() {
-        /*// 注册广播
-        receiver = new MyReceiver();
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(MusicPlayerService.OPENAUDIO);
-        registerReceiver(receiver, filter);*/
         
         // 注册EventBus
         EventBus.getDefault().register(this);
         
-        handler.sendEmptyMessage(UPDATE_CONTROLLER_UI);
-        
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                handler.sendEmptyMessage(UPDATE_CONTROLLER_UI);
+            }
+        }).start();
     }
     
     /**
      * 获取数据
      */
     public void getData() {
+        // 获取传递的判断是否来自于通知栏或bar的标志
         isFromBar = getIntent().getBooleanExtra("FROMBAR", false);
         isFromNotification = getIntent().getBooleanExtra("FROMNOTIFICATION", false);
         
+        // 若不是从bar或通知进入的，获取点击列表位置
         if (!isFromBar || !isFromNotification) {
             position = getIntent().getIntExtra(AUDIO_POSITION, 0);
         }
@@ -331,9 +370,14 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
         Intent serviceIntent = new Intent(this, MusicPlayerService.class);
         // 设置动作（表示启动能够响应这个action的活动）
         serviceIntent.setAction("com.fairhand.mobileplayer.OPENAUDIO");
+        // 获取到传递的歌曲列表
+        ArrayList<MediaItem> mediaItems = (ArrayList<MediaItem>) getIntent().getSerializableExtra(AUDIO_LIST);
+        Bundle bundle = new Bundle();
+        bundle.putSerializable("TOSERVICE", mediaItems);
+        serviceIntent.putExtras(bundle);
+        startService(serviceIntent);
         // 绑定服务
         bindService(serviceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
-        startService(serviceIntent);// 避免实例化多个服务
     }
     
     /**
@@ -468,9 +512,9 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
                         // 时间进度更新
                         currentTime.setText(TimeConvertUtil.stringForTime(currentPosition));
                         
-                        // 每秒更新一次
+                        // 每10ms更新一次（这样你能拖多快，我就能更新多快）
                         handler.removeMessages(PROGRESS);
-                        handler.sendEmptyMessageDelayed(PROGRESS, 1000);
+                        handler.sendEmptyMessageDelayed(PROGRESS, 10);
                         
                     } catch (RemoteException e) {
                         e.printStackTrace();
@@ -490,7 +534,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
                     }
                     break;
                 
-                case UPDATE_CONTROLLER_UI:// 更新UI
+                case UPDATE_CONTROLLER_UI:// 更新控制器UI
                     // 获取Audio系统服务
                     mAudioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
                     assert mAudioManager != null;
@@ -513,19 +557,21 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
                     
                     break;
                 
-                case UPDATE_MUSIC_UI:
+                case UPDATE_MUSIC_UI:// 更新音乐UI
                     try {
                         // 设置歌手
                         musicArtist.setText(iMusicPlayerService.getCurrentPlayAudioArtist());
                         // 设置歌名
                         musicName.setText(iMusicPlayerService.getCurrentPlayAudioName());
                         // 设置歌曲总时长
-                        musicDuration.setText(TimeConvertUtil.stringForTime(iMusicPlayerService.getCurrentAudioDuration()));
+                        musicDuration.setText(TimeConvertUtil.stringForTime(
+                                iMusicPlayerService.getCurrentAudioDuration()));
                         // 设置进度条的最大值
                         seekbarMusic.setMax(iMusicPlayerService.getCurrentAudioDuration());
                         
                         if (!isPressPreOrNext) {
                             setMusicImage();
+                            Log.d(TAG, "我行你为什么不行？？？？");
                         }
                         
                         // 发送消息通知SeekBar更新播放进度
@@ -536,23 +582,27 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
                     }
                     break;
                     
+                case CHECKPLAYMODE :// 校准播放模式
+                    try {
+                        int PLAY_MODE = iMusicPlayerService.getPlayMode();// 获取到播放模式
+                        if (PLAY_MODE == MusicPlayerService.REPEAT_ALL) {
+                            musicPlayMode.setBackgroundResource(R.drawable.music_repeat_all_mode_selector);
+                        } else if (PLAY_MODE == MusicPlayerService.REPEAT_SINGLE) {
+                            musicPlayMode.setBackgroundResource(R.drawable.music_repeat_single_mode_selector);
+                        } else if (PLAY_MODE == MusicPlayerService.REPEAT_RAND) {
+                            musicPlayMode.setBackgroundResource(R.drawable.music_repeat_random_mode_selector);
+                        }
+        
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                
                 default:
                     break;
             }
         }
     };
-    
-    //    /**
-    //     * 广播类
-    //     */
-    //    private class MyReceiver extends BroadcastReceiver {
-    //
-    //        @Override
-    //        public void onReceive(Context context, Intent intent) {
-    //            Log.d(TAG, "当前线程==" + Thread.currentThread());
-    //            showData();
-    //        }
-    //    }
     
     /**
      * EventBus订阅方法
@@ -568,13 +618,18 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
      * 显示歌曲信息
      */
     private void showViewData() {
-        handler.sendEmptyMessage(UPDATE_MUSIC_UI);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                handler.sendEmptyMessage(UPDATE_MUSIC_UI);
+            }
+        }).start();
     }
     
     /**
      * 处理暂停或是播放音乐
      *
-     * @param isFromOther 标识是否来自状态栏
+     * @param isFromOther 标识是否来自状态栏或bar
      */
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
     private void pauseOrPlayMusic(boolean isFromOther) {
@@ -641,19 +696,12 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
      * 从列表点击另一首歌时校准播放模式
      */
     private void checkPlayMode() {
-        try {
-            int PLAY_MODE = iMusicPlayerService.getPlayMode();// 获取到播放模式
-            if (PLAY_MODE == MusicPlayerService.REPEAT_ALL) {
-                musicPlayMode.setBackgroundResource(R.drawable.music_repeat_all_mode_selector);
-            } else if (PLAY_MODE == MusicPlayerService.REPEAT_SINGLE) {
-                musicPlayMode.setBackgroundResource(R.drawable.music_repeat_single_mode_selector);
-            } else if (PLAY_MODE == MusicPlayerService.REPEAT_RAND) {
-                musicPlayMode.setBackgroundResource(R.drawable.music_repeat_random_mode_selector);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                handler.sendEmptyMessage(CHECKPLAYMODE);
             }
-            
-        } catch (RemoteException e) {
-            e.printStackTrace();
-        }
+        }).start();
     }
     
     /**
@@ -757,29 +805,6 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
             e.printStackTrace();
         }
         finish();
-    }
-    
-    @Override
-    protected void onDestroy() {
-        /*// 取消注册广播
-        if (receiver != null) {
-            unregisterReceiver(receiver);
-            receiver = null;
-        }*/
-        
-        // 取消注册EventBus
-        EventBus.getDefault().unregister(this);
-        
-        // 移除所有的消息
-        handler.removeCallbacksAndMessages(null);
-        
-        // 解绑服务
-        if (mServiceConnection != null) {
-            unbindService(mServiceConnection);
-            mServiceConnection = null;
-        }
-        
-        super.onDestroy();
     }
     
 }

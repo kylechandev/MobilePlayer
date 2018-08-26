@@ -29,6 +29,8 @@ import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
 import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
+import android.support.v7.widget.SearchView;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -57,8 +59,9 @@ import java.util.Objects;
 import static android.app.Activity.RESULT_OK;
 
 /**
+ * 音乐Pager
+ *
  * @author FairHand
- * @describe 音乐Pager
  */
 public class AudioPagerFragment extends Fragment {
     
@@ -110,6 +113,11 @@ public class AudioPagerFragment extends Fragment {
     private ArrayList<MediaItem> mediaItems;
     
     /**
+     * 搜索
+     */
+    private SearchView searchView;
+    
+    /**
      * 当Activity与Fragment创建关联时调用
      */
     @Override
@@ -122,7 +130,6 @@ public class AudioPagerFragment extends Fragment {
         // 设置动作（表示启动能够响应这个action的活动）
         serviceIntent.setAction("com.fairhand.mobileplayer.OPENAUDIO");
         context.bindService(serviceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
-        context.startService(serviceIntent);
         
     }
     
@@ -145,15 +152,18 @@ public class AudioPagerFragment extends Fragment {
             rootView = inflater.inflate(R.layout.audio_fragment, container, false);
         }
         
-        listView = rootView.findViewById(R.id.list_view);
+        RelativeLayout musicBar = rootView.findViewById(R.id.music_bar);
+        searchView = rootView.findViewById(R.id.searchview);
+        listView = rootView.findViewById(R.id.audio_list_view);
         noMedia = rootView.findViewById(R.id.no_music);
         loading = rootView.findViewById(R.id.loading);
-        RelativeLayout musicBar = rootView.findViewById(R.id.music_bar);
         barMusicName = rootView.findViewById(R.id.bar_music_name);
         barMusician = rootView.findViewById(R.id.bar_musician);
         barMusicMenu = rootView.findViewById(R.id.music_bar_menu);
         barMusicImage = rootView.findViewById(R.id.bar_music_image);
         barPlayOrPauseMusic = rootView.findViewById(R.id.bar_play_or_pause_music);
+        
+        listView.setTextFilterEnabled(true);
         
         // 获取保存的bar信息
         String name = SaveCacheUtil.getMusicBarMusicName(context, "MUSICNAMEKEY");
@@ -164,6 +174,17 @@ public class AudioPagerFragment extends Fragment {
             barMusician.setText(artist);
         }
         
+        setOnListener(musicBar);
+        
+        
+        return rootView;
+    }
+    
+    /**
+     * 设置监听
+     */
+    private void setOnListener(RelativeLayout musicBar) {
+        
         // 监听点击播放与暂停
         barPlayOrPauseMusic.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -172,10 +193,12 @@ public class AudioPagerFragment extends Fragment {
                     try {
                         if (iMusicPlayerService.isPlaying()) {
                             iMusicPlayerService.pausePlayMusic();
-                            barPlayOrPauseMusic.setImageResource(R.drawable.music_bar_play_selector);
+                            barPlayOrPauseMusic.setImageResource(
+                                    R.drawable.music_bar_play_selector);
                         } else {
                             iMusicPlayerService.startPlayMusic();
-                            barPlayOrPauseMusic.setImageResource(R.drawable.music_bar_pause_selector);
+                            barPlayOrPauseMusic.setImageResource(
+                                    R.drawable.music_bar_pause_selector);
                         }
                     } catch (RemoteException e) {
                         e.printStackTrace();
@@ -188,7 +211,10 @@ public class AudioPagerFragment extends Fragment {
         barMusicMenu.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-            
+                // 创建出播放列表对话框
+                assert getFragmentManager() != null;
+                new CustomBottomSheetDialogFragment().show(getFragmentManager(),
+                        "Dialog");
             }
         });
         
@@ -197,15 +223,21 @@ public class AudioPagerFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 // 启动播放界面
-                Intent intent = new Intent(getActivity(), AudioPlayerActivity.class);
+                Intent intent = new Intent(context, AudioPlayerActivity.class);
                 intent.putExtra("FROMBAR", true);// 标识来自BAR
+                
+                Bundle bundle = new Bundle();
+                bundle.putSerializable(AUDIO_LIST, mediaItems);
+                // 传入audio对象序列
+                intent.putExtras(bundle);
                 startActivityForResult(intent, 999);
             }
         });
         
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            public void onItemClick(AdapterView<?> parent, View view,
+                                    int position, long id) {
                 
                 // 获取到点击位置的音乐文件
                 MediaItem mediaItem = mediaItems.get(position);
@@ -223,7 +255,7 @@ public class AudioPagerFragment extends Fragment {
                 
                 Bundle bundle = new Bundle();
                 bundle.putSerializable(AUDIO_LIST, mediaItems);
-                // 传入video对象序列
+                // 传入audio对象序列
                 intent.putExtras(bundle);
                 // 传入位置
                 intent.putExtra(AUDIO_POSITION, position);
@@ -231,12 +263,51 @@ public class AudioPagerFragment extends Fragment {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                     startActivityForResult(intent, 999);
                 } else {
-                    Toast.makeText(context, "当前手机不支持播放", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "当前手机不支持播放",
+                            Toast.LENGTH_SHORT).show();
                 }
             }
         });
         
-        return rootView;
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String s) {
+                return false;
+            }
+            
+            @Override
+            public boolean onQueryTextChange(String s) {
+                if (TextUtils.isEmpty(s)) {
+                    listView.clearTextFilter();  // 清除ListView的过滤
+                } else {
+                    Log.d(TAG, "开始过滤");
+                    listView.setFilterText(s); // 设置ListView的过滤关键词
+                    
+                }
+                return false;
+            }
+        });
+    }
+    
+    @Override
+    public void onDestroy() {
+        
+        // 取消注册广播
+        if (mReceiver != null) {
+            context.unregisterReceiver(mReceiver);
+            mReceiver = null;
+        }
+        
+        // 解绑服务
+        if (mServiceConnection != null) {
+            context.unbindService(mServiceConnection);
+            mServiceConnection = null;
+        }
+        
+        // 移除所有消息
+        handler.removeCallbacksAndMessages(null);
+        
+        super.onDestroy();
     }
     
     /**
@@ -350,68 +421,6 @@ public class AudioPagerFragment extends Fragment {
     }
     
     /**
-     * 获取本地数据
-     * 1)遍历sdcard，后缀名
-     * 2)从内容提供器中获取视频
-     * 3)若为6.0以上，需动态读取sdcard的权限
-     */
-    private void getDataFromLocal() {
-        mediaItems = new ArrayList<>();
-        
-        new Thread() {
-            @Override
-            public void run() {
-                super.run();
-                
-                // 获取一个ContentResolver
-                ContentResolver resolver = context.getContentResolver();
-                Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-                String[] objs = {
-                        MediaStore.Audio.Media.TITLE,// 歌名
-                        MediaStore.Audio.Media.DURATION,// 音乐总时长
-                        MediaStore.Audio.Media.SIZE,// 音乐的文件大小
-                        MediaStore.Audio.Media.DATA,// 音乐的绝对地址
-                        MediaStore.Audio.Media.ARTIST,// 歌手
-                        MediaStore.Audio.Media.ALBUM_ID// 专辑图片ID
-                };
-                Cursor cursor = resolver.query(uri, objs, null, null, null);
-                if (cursor != null) {
-                    while (cursor.moveToNext()) {
-                        
-                        MediaItem mediaItem = new MediaItem();
-                        mediaItems.add(mediaItem);
-                        
-                        String name = cursor.getString(0);// 音乐的名称
-                        mediaItem.setMediaName(name);
-                        
-                        long duration = cursor.getLong(1);// 音乐的时长
-                        mediaItem.setDuration(duration);
-                        
-                        long size = cursor.getLong(2);// 音乐的大小
-                        mediaItem.setSize(size);
-                        
-                        String data = cursor.getString(3);// 音乐的播放地址
-                        mediaItem.setData(data);
-                        
-                        String artist = cursor.getString(4);// 歌手
-                        mediaItem.setMusicArtist(artist);
-                        
-                        long albumId = cursor.getLong(5);// 专辑图片
-                        mediaItem.setAlbumId(albumId);
-                        
-                    }
-                    cursor.close();
-                }
-                
-                // handler发消息
-                handler.sendEmptyMessage(0);
-                
-            }
-        }.start();
-        
-    }
-    
-    /**
      * 返回数据回调方法（目的设置bar的播放暂停图标）
      */
     @Override
@@ -455,7 +464,7 @@ public class AudioPagerFragment extends Fragment {
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     getDataFromLocal();
                 } else {
-                    Toast.makeText(context, "无法获取权限", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "无法获取本地数据读取权限", Toast.LENGTH_SHORT).show();
                     Objects.requireNonNull(getActivity()).finish();
                 }
                 break;
@@ -464,24 +473,70 @@ public class AudioPagerFragment extends Fragment {
         }
     }
     
-    @Override
-    public void onDestroy() {
+    /**
+     * 获取本地数据
+     * 1)遍历sdcard，后缀名
+     * 2)从内容提供器中获取视频
+     * 3)若为6.0以上，需动态读取sdcard的权限
+     */
+    private void getDataFromLocal() {
+        mediaItems = new ArrayList<>();
         
-        // 取消注册广播
-        if (mReceiver != null) {
-            context.unregisterReceiver(mReceiver);
-            mReceiver = null;
-        }
+        new Thread() {
+            @Override
+            public void run() {
+                super.run();
+                
+                // 获取一个ContentResolver
+                ContentResolver resolver = context.getContentResolver();
+                Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+                String[] objs = {
+                        MediaStore.Audio.Media.TITLE,// 歌名
+                        MediaStore.Audio.Media.DURATION,// 音乐总时长
+                        MediaStore.Audio.Media.SIZE,// 音乐的文件大小
+                        MediaStore.Audio.Media.DATA,// 音乐的绝对地址
+                        MediaStore.Audio.Media.ARTIST,// 歌手
+                        MediaStore.Audio.Media.ALBUM_ID,// 专辑图片ID
+                        MediaStore.Audio.Media.ALBUM// 专辑名
+                };
+                Cursor cursor = resolver.query(uri, objs, null, null, null);
+                if (cursor != null) {
+                    while (cursor.moveToNext()) {
+                        
+                        MediaItem mediaItem = new MediaItem();
+                        mediaItems.add(mediaItem);
+                        
+                        String name = cursor.getString(0);// 音乐的名称
+                        mediaItem.setMediaName(name);
+                        
+                        long duration = cursor.getLong(1);// 音乐的时长
+                        mediaItem.setDuration(duration);
+                        
+                        long size = cursor.getLong(2);// 音乐的大小
+                        mediaItem.setSize(size);
+                        
+                        String data = cursor.getString(3);// 音乐的播放地址
+                        mediaItem.setData(data);
+                        
+                        String artist = cursor.getString(4);// 歌手
+                        mediaItem.setMusicArtist(artist);
+                        
+                        long albumId = cursor.getLong(5);// 专辑图片
+                        mediaItem.setAlbumId(albumId);
+    
+                        String album = cursor.getString(6);// 专辑名
+                        mediaItem.setAlbum(album);
+                        
+                    }
+                    cursor.close();
+                }
+                
+                // handler发消息
+                handler.sendEmptyMessage(0);
+                
+            }
+        }.start();
         
-        // 解绑服务
-        if (mServiceConnection != null) {
-            context.unbindService(mServiceConnection);
-            mServiceConnection = null;
-        }
-        
-        // 移除所有消息
-        handler.removeCallbacksAndMessages(null);
-        
-        super.onDestroy();
     }
+    
 }

@@ -29,7 +29,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.fairhand.mobileplayer.R;
-import com.fairhand.mobileplayer.activity.SystemVideoPlayerActivity;
+import com.fairhand.mobileplayer.activity.VideoPlayerActivity;
 import com.fairhand.mobileplayer.adapter.VideoPagerAdapter;
 import com.fairhand.mobileplayer.domain.MediaItem;
 
@@ -98,7 +98,7 @@ public class VideoPagerFragment extends Fragment {
             rootView = inflater.inflate(R.layout.video_fragment, container, false);
         }
         
-        listView = rootView.findViewById(R.id.list_view);
+        listView = rootView.findViewById(R.id.video_list_view);
         noMedia = rootView.findViewById(R.id.no_media);
         loading = rootView.findViewById(R.id.loading);
         
@@ -125,13 +125,13 @@ public class VideoPagerFragment extends Fragment {
                 getContext().startActivity(intent);*/
                 
                 // 调用自己写的播放器（显示Intent）
-                /*Intent intent = new Intent(getContext(), SystemVideoPlayerActivity.class);
+                /*Intent intent = new Intent(getContext(), VideoPlayerActivity.class);
                 // 设置数据和类型
                 intent.setDataAndType(Uri.parse(mediaItem.getData()), "video/*");
                 getContext().startActivity(intent);*/
                 
                 // 传递数据列表 对象 序列化
-                Intent intent = new Intent(getContext(), SystemVideoPlayerActivity.class);
+                Intent intent = new Intent(getContext(), VideoPlayerActivity.class);
                 
                 Bundle bundle = new Bundle();
                 bundle.putSerializable(VIDEO_LIST, mediaItems);

@@ -27,4 +27,15 @@
     <string name="music_info_image">歌曲信息图片</string>
     <string name="navigation">导航</string>
     <string name="blank" />
+    <string name="search">搜索</string>
+    <string name="music_album">歌曲专辑</string>
+    <string name="next">下一首</string>
+    <string name="pre">上一首</string>
+    <string name="pause">暂停</string>
+    <string name="user_name">一只成成成阿</string>
+    <string name="theme">个性换肤</string>
+    <string name="night_mode">夜间模式</string>
+    <string name="exit_app">退出应用</string>
+    <string name="appwidget_text">EXAMPLE</string>
+    <string name="add_widget">Add widget</string>
 </resources>

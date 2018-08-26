@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
 
     <application
         android:name=".MyApplication"
@@ -16,56 +17,62 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity android:name=".activity.BaseActivity" />
-
         <activity android:name=".activity.SplashActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".activity.MainActivity"
             android:configChanges="keyboardHidden|screenSize|orientation"
-            android:launchMode="singleTask" />
-
+            android:launchMode="singleTask"
+            android:windowSoftInputMode="adjustPan|stateHidden" />
         <activity
-            android:name=".activity.SystemVideoPlayerActivity"
-            android:label="@string/player_name"
-            android:screenOrientation="landscape"
+            android:name=".activity.VideoPlayerActivity"
             android:configChanges="keyboardHidden|screenSize|orientation"
+            android:label="@string/player_name"
+            android:launchMode="singleTask"
+            android:screenOrientation="landscape"
             android:theme="@style/theme_fullScreen">
 
-            <!--设置可以被调用当作播放器播放视频-->
+            <!-- 设置可以被调用当作播放器播放视频 -->
             <intent-filter>
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="rtsp"/>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="rtsp" />
             </intent-filter>
             <intent-filter tools:ignore="AppLinkUrlError">
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <data android:mimeType="video/*"/>
-                <data android:mimeType="application/sdp"/>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="video/*" />
+                <data android:mimeType="application/sdp" />
             </intent-filter>
             <intent-filter>
-                <action android:name="android.intent.action.VIEW"/>
-                <category android:name="android.intent.category.DEFAULT"/>
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="http"/>
-                <data android:mimeType="video/mp4"/>
-                <data android:mimeType="video/3gp"/>
-                <data android:mimeType="video/3gpp"/>
-                <data android:mimeType="video/3gpp2"/>
-            </intent-filter>
+                <action android:name="android.intent.action.VIEW" />
 
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="http" />
+                <data android:mimeType="video/mp4" />
+                <data android:mimeType="video/3gp" />
+                <data android:mimeType="video/3gpp" />
+                <data android:mimeType="video/3gpp2" />
+            </intent-filter>
         </activity>
 
+        <!-- android:excludeFromRecents:使最近运行的程序里面不显示 -->
         <activity
             android:name=".activity.AudioPlayerActivity"
-            android:screenOrientation="portrait"
-            android:launchMode="singleTop"/>
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:screenOrientation="portrait" />
 
         <service android:name=".service.MusicPlayerService">
             <intent-filter>
@@ -73,6 +80,15 @@
             </intent-filter>
         </service>
 
+        <receiver android:name=".PlayWidget">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/play_widget_info" />
+        </receiver>
     </application>
 
 </manifest>

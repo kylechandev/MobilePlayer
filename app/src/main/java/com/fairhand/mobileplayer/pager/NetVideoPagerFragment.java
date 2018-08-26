@@ -17,7 +17,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.fairhand.mobileplayer.R;
-import com.fairhand.mobileplayer.activity.SystemVideoPlayerActivity;
+import com.fairhand.mobileplayer.activity.VideoPlayerActivity;
 import com.fairhand.mobileplayer.adapter.NetVideoPagerAdapter;
 import com.fairhand.mobileplayer.domain.MediaItem;
 import com.fairhand.mobileplayer.utils.FindNetVideoUtil;
@@ -35,11 +35,11 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Objects;
 
-public class NetVedioPagerFragment extends Fragment {
+public class NetVideoPagerFragment extends Fragment {
     
-    private static final String TAG = NetVedioPagerFragment.class.getSimpleName();
+    private static final String TAG = NetVideoPagerFragment.class.getSimpleName();
     
-    @ViewInject(R.id.list_view)
+    @ViewInject(R.id.netvideo_list_view)
     private XListView mXListView;
     
     @ViewInject(R.id.no_net)
@@ -81,6 +81,69 @@ public class NetVedioPagerFragment extends Fragment {
         
         initData();// 初始化数据
         
+    }
+    
+    @Nullable
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        
+        if (rootView == null) {
+            rootView = inflater.inflate(R.layout.net_video_fragment, container, false);
+        }
+        // 第一个参数为NetVedioPagerFragment.this，第二个参数为布局
+        // 作用：将布局view与NetVedioPagerFragment关联
+        x.view().inject(this, rootView);
+        
+        // 设置点击事件
+        mXListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                // 传递数据列表 对象 序列化
+                Intent intent = new Intent(getContext(), VideoPlayerActivity.class);
+                
+                Bundle bundle = new Bundle();
+                bundle.putSerializable(VIDEO_LIST, mediaItems);
+                // 传入video对象序列
+                intent.putExtras(bundle);
+                // 传入位置
+                intent.putExtra(VIDEO_POSITION, position - 1);
+                
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    Objects.requireNonNull(getContext()).startActivity(intent);
+                } else {
+                    Toast.makeText(getContext(), "当前手机不支持播放", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        
+        // Enable pull up load more feature.
+        mXListView.setPullLoadEnable(true);
+        
+        // 设置刷新监听
+        mXListView.setXListViewListener(new XListView.IXListViewListener() {
+            /**
+             * 刷新
+             */
+            @Override
+            public void onRefresh() {
+                getDataFromNet();
+            }
+            
+            /**
+             * 加载更多
+             */
+            @Override
+            public void onLoadMore() {
+                if (havaNet) {
+                    mediaItems.addAll(parseJson(publicResult));
+                    netVideoPagerAdapter.notifyDataSetChanged();
+                    onLoad();
+                }
+            }
+        });
+        
+        return rootView;
     }
     
     /**
@@ -233,69 +296,6 @@ public class NetVedioPagerFragment extends Fragment {
         @SuppressLint("SimpleDateFormat")
         SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm");
         return dateFormat.format(new Date());
-    }
-    
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater,
-                             @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        
-        if (rootView == null) {
-            rootView = inflater.inflate(R.layout.net_video_fragment, container, false);
-        }
-        // 第一个参数为NetVedioPagerFragment.this，第二个参数为布局
-        // 作用：将布局view与NetVedioPagerFragment关联
-        x.view().inject(this, rootView);
-        
-        // 设置点击事件
-        mXListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                // 传递数据列表 对象 序列化
-                Intent intent = new Intent(getContext(), SystemVideoPlayerActivity.class);
-                
-                Bundle bundle = new Bundle();
-                bundle.putSerializable(VIDEO_LIST, mediaItems);
-                // 传入video对象序列
-                intent.putExtras(bundle);
-                // 传入位置
-                intent.putExtra(VIDEO_POSITION, position - 1);
-                
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                    Objects.requireNonNull(getContext()).startActivity(intent);
-                } else {
-                    Toast.makeText(getContext(), "当前手机不支持播放", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-        
-        // Enable pull up load more feature.
-        mXListView.setPullLoadEnable(true);
-        
-        // 设置刷新监听
-        mXListView.setXListViewListener(new XListView.IXListViewListener() {
-            /**
-             * 刷新
-             */
-            @Override
-            public void onRefresh() {
-                getDataFromNet();
-            }
-            
-            /**
-             * 加载更多
-             */
-            @Override
-            public void onLoadMore() {
-                if (havaNet) {
-                    mediaItems.addAll(parseJson(publicResult));
-                    netVideoPagerAdapter.notifyDataSetChanged();
-                    onLoad();
-                }
-            }
-        });
-        
-        return rootView;
     }
     
 }
