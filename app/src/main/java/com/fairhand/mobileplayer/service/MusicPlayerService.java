@@ -20,10 +20,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
-import android.support.v4.content.IntentCompat;
 import android.util.Log;
 import android.widget.RemoteViews;
 import android.widget.Toast;
@@ -55,10 +53,17 @@ public class MusicPlayerService extends Service {
      */
     public static final String UPDATE_VIEW_INFO = "com.fairhand.mobileplayer.OPENAUDIO";
     
+    public static final String SYNC_BUTTON_STATE = "com.fairhand.mobileplayer.SYNC_BUTTON_STATE";
+    
+    /**
+     * 传入audio对象序列的KEY
+     */
+    private static final String AUDIO_LIST = "audiolist";
+    
     /**
      * 更新通知信息MessageWhat
      */
-    private static final int UPDATENOTIFICATION = 9;
+    private static final int UPDATE_NOTIFICATION = 9;
     
     /**
      * 歌曲列表
@@ -83,7 +88,7 @@ public class MusicPlayerService extends Service {
     /**
      * 自定义广播
      */
-    private MyReceiver receiver;
+    private BroadcastReceiver mReceiver;
     
     private NotificationManager manager;
     
@@ -164,12 +169,12 @@ public class MusicPlayerService extends Service {
         }
         
         // 注册广播
-        receiver = new MyReceiver();
+        mReceiver = new MyReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction(MusicPlayerService.STATUS_BAR_PLAY_CLICK_ACTION);
         filter.addAction(MusicPlayerService.STATUS_BAR_PRE_CLICK_ACTION);
         filter.addAction(MusicPlayerService.STATUS_BAR_NEXT_CLICK_ACTION);
-        registerReceiver(receiver, filter);
+        registerReceiver(mReceiver, filter);
     }
     
     @Override
@@ -177,9 +182,9 @@ public class MusicPlayerService extends Service {
         
         Log.d(TAG, "服务onDestroy");
         // 取消注册广播
-        if (receiver != null) {
-            unregisterReceiver(receiver);
-            receiver = null;
+        if (mReceiver != null) {
+            unregisterReceiver(mReceiver);
+            mReceiver = null;
         }
         
         super.onDestroy();
@@ -193,7 +198,7 @@ public class MusicPlayerService extends Service {
         
         Log.d(TAG, "服务onStartCommand");
         
-        mediaItems = (ArrayList<MediaItem>) intent.getSerializableExtra("TOSERVICE");
+        mediaItems = (ArrayList<MediaItem>) intent.getSerializableExtra("TO_SERVICE");
         
         Log.d(TAG, "看看你为社么空" + mediaItems);
         
@@ -409,13 +414,13 @@ public class MusicPlayerService extends Service {
         mMediaPlayer.start();
         
         createNotification();
-        
     }
     
     /**
      * 暂停音乐
      */
     private void pausePlayMusic() {
+        updatedNotification();
         mMediaPlayer.pause();
     }
     
@@ -466,6 +471,8 @@ public class MusicPlayerService extends Service {
      * 播放上一首音乐
      */
     private void playPreviousAudio() {
+        updatedNotification();
+        
         if (PLAY_MODE == MusicPlayerService.REPEAT_ALL) {
             position--;
         } else if (PLAY_MODE == MusicPlayerService.REPEAT_SINGLE) {
@@ -491,6 +498,8 @@ public class MusicPlayerService extends Service {
      * 播放下一首音乐
      */
     private void playNextAudio() {
+        updatedNotification();
+        
         if (PLAY_MODE == MusicPlayerService.REPEAT_ALL) {
             position++;
         } else if (PLAY_MODE == MusicPlayerService.REPEAT_SINGLE) {
@@ -578,11 +587,6 @@ public class MusicPlayerService extends Service {
     }
     
     /**
-     * 传入audio对象序列的KEY
-     */
-    private static final String AUDIO_LIST = "audiolist";
-    
-    /**
      * 创建通知
      */
     private void createNotification() {
@@ -656,7 +660,7 @@ public class MusicPlayerService extends Service {
         intents[1] = new Intent(
                 this,
                 AudioPlayerActivity.class);
-        intents[1].putExtra("FROMNOTIFICATION", true);// 标识来自状态栏
+        intents[1].putExtra("FROM_NOTIFICATION", true);// 标识来自状态栏
         
         Bundle bundle = new Bundle();
         bundle.putSerializable(AUDIO_LIST, mediaItems);
@@ -672,7 +676,7 @@ public class MusicPlayerService extends Service {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                handler.sendEmptyMessage(UPDATENOTIFICATION);
+                handler.sendEmptyMessage(UPDATE_NOTIFICATION);
             }
         }).start();
     }
@@ -719,7 +723,16 @@ public class MusicPlayerService extends Service {
                 playNextAudio();
             }
             updatedNotification();
+            notifySyncButtonState(SYNC_BUTTON_STATE);
         }
+    }
+    
+    /**
+     * 通知同步按钮状态
+     */
+    private void notifySyncButtonState(String action) {
+        Intent syncInent = new Intent(action);
+        sendBroadcast(syncInent);
     }
     
     @SuppressLint("HandlerLeak")
@@ -728,7 +741,7 @@ public class MusicPlayerService extends Service {
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
             switch (msg.what) {
-                case UPDATENOTIFICATION:// 更新通知信息
+                case UPDATE_NOTIFICATION:// 更新通知信息
                     if (isPlaying()) {
                         normalView.setImageViewResource(
                                 R.id.music_play, R.drawable.ic_play_btn_pause);

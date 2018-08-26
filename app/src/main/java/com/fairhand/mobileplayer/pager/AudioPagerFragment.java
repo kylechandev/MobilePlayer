@@ -166,18 +166,39 @@ public class AudioPagerFragment extends Fragment {
         listView.setTextFilterEnabled(true);
         
         // 获取保存的bar信息
-        String name = SaveCacheUtil.getMusicBarMusicName(context, "MUSICNAMEKEY");
-        String artist = SaveCacheUtil.getMusicBarMusicArtist(context, "MUSICIANKEY");
+        String name = SaveCacheUtil.getMusicBarMusicName(context, "MUSIC_NAME_KEY");
+        String artist = SaveCacheUtil.getMusicBarMusicArtist(context, "MUSICIAN_KEY");
+        long albumId = SaveCacheUtil.getMusicBarMusicAlbum(context, "ALBUM_KEY");
         
-        if ((name != null) || (artist != null)) {
+        if ((name != null) || (artist != null) || (albumId != 0)) {
             barMusicName.setText(name);
             barMusician.setText(artist);
+            setMusicImage(getAlbumArt(albumId));
         }
         
         setOnListener(musicBar);
         
-        
         return rootView;
+    }
+    
+    /**
+     * 获取到本地音乐的专辑图片存储地址
+     */
+    private String getAlbumArt(long album_id) {
+        String mUriAlbums = "content://media/external/audio/albums";
+        String[] projection = new String[]{"album_art"};
+        Cursor cursor = context.getContentResolver().query(
+                Uri.parse(mUriAlbums + "/" + Long.toString(album_id)),
+                projection, null, null, null);
+        String album_art = null;
+        assert cursor != null;
+        if (cursor.getCount() > 0 && cursor.getColumnCount() > 0) {
+            cursor.moveToNext();
+            album_art = cursor.getString(0);
+        }
+        cursor.close();
+        return album_art;
+        
     }
     
     /**
@@ -224,7 +245,7 @@ public class AudioPagerFragment extends Fragment {
             public void onClick(View v) {
                 // 启动播放界面
                 Intent intent = new Intent(context, AudioPlayerActivity.class);
-                intent.putExtra("FROMBAR", true);// 标识来自BAR
+                intent.putExtra("FROM_BAR", true);// 标识来自BAR
                 
                 Bundle bundle = new Bundle();
                 bundle.putSerializable(AUDIO_LIST, mediaItems);
@@ -242,13 +263,16 @@ public class AudioPagerFragment extends Fragment {
                 // 获取到点击位置的音乐文件
                 MediaItem mediaItem = mediaItems.get(position);
                 
-                // 获取到歌名和歌手
+                // 获取到歌名 歌手 专辑图片路径
                 String name = mediaItem.getMediaName();
                 String artist = mediaItem.getMusicArtist();
+                long albumId = mediaItem.getAlbumId();
                 
                 // 保存bar信息
-                SaveCacheUtil.putMusicBarInfo(context, "MUSICNAMEKEY",
-                        "MUSICIANKEY", "POSITIONKEY", name, artist, position);
+                SaveCacheUtil.putMusicBarInfo(context,
+                        "MUSIC_NAME_KEY", "MUSICIAN_KEY",
+                        "POSITION_KEY", "ALBUM_KEY",
+                        name, artist, position, albumId);
                 
                 // 传递数据列表 对象 序列化
                 Intent intent = new Intent(context, AudioPlayerActivity.class);
@@ -329,6 +353,7 @@ public class AudioPagerFragment extends Fragment {
         mReceiver = new MyReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction(MusicPlayerService.UPDATE_VIEW_INFO);
+        filter.addAction(MusicPlayerService.SYNC_BUTTON_STATE);
         context.registerReceiver(mReceiver, filter);
     }
     
@@ -383,19 +408,32 @@ public class AudioPagerFragment extends Fragment {
      */
     private class MyReceiver extends BroadcastReceiver {
         
+        @SuppressLint("NewApi")
         @Override
         public void onReceive(Context context, Intent intent) {
             try {
-                // 获取到下一首歌的信息并更新bar的信息
-                String name = iMusicPlayerService.getCurrentPlayAudioName();
-                String artist = iMusicPlayerService.getCurrentPlayAudioArtist();
-                String album = iMusicPlayerService.getAlbumArt(iMusicPlayerService.getAlbumId());
-                barMusicName.setText(name);
-                barMusician.setText(artist);
-                setMusicImage(album);
+                if (Objects.requireNonNull(intent.getAction()).equals(MusicPlayerService.UPDATE_VIEW_INFO)) {
+                    // 获取到下一首歌的信息并更新bar的信息
+                    String name = iMusicPlayerService.getCurrentPlayAudioName();
+                    String artist = iMusicPlayerService.getCurrentPlayAudioArtist();
+                    String album = iMusicPlayerService.getAlbumArt(iMusicPlayerService.getAlbumId());
+                    barMusicName.setText(name);
+                    barMusician.setText(artist);
+                    setMusicImage(album);
+                } else if (intent.getAction().equals(MusicPlayerService.SYNC_BUTTON_STATE)) {
+                    // 同步bar的播放按钮
+                    if (iMusicPlayerService.isPlaying()) {
+                        barPlayOrPauseMusic.setImageResource(
+                                R.drawable.music_bar_pause_selector);
+                    } else {
+                        barPlayOrPauseMusic.setImageResource(
+                                R.drawable.music_bar_play_selector);
+                    }
+                }
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
+            
         }
     }
     
@@ -430,7 +468,7 @@ public class AudioPagerFragment extends Fragment {
             case 999:
                 if (resultCode == RESULT_OK) {
                     Log.d(TAG, "返回数据已收到！！！！！！！！！！！！");
-                    boolean isPlaying = data.getBooleanExtra("ISPLAYING", false);
+                    boolean isPlaying = data.getBooleanExtra("IS_PLAYING", false);
                     
                     if (isPlaying) {
                         barPlayOrPauseMusic.setImageResource(R.drawable.music_bar_pause_selector);
@@ -439,9 +477,9 @@ public class AudioPagerFragment extends Fragment {
                     }
                     
                     // 更新bar的歌曲信息
-                    String name = data.getStringExtra("MUSICNAME");
-                    String artist = data.getStringExtra("MUSICARTIST");
-                    String albumart = data.getStringExtra("ALBUMART");
+                    String name = data.getStringExtra("MUSIC_NAME");
+                    String artist = data.getStringExtra("MUSIC_ARTIST");
+                    String albumart = data.getStringExtra("ALBUM_ART");
                     barMusicName.setText(name);
                     barMusician.setText(artist);
                     setMusicImage(albumart);
@@ -523,7 +561,7 @@ public class AudioPagerFragment extends Fragment {
                         
                         long albumId = cursor.getLong(5);// 专辑图片
                         mediaItem.setAlbumId(albumId);
-    
+                        
                         String album = cursor.getString(6);// 专辑名
                         mediaItem.setAlbum(album);
                         

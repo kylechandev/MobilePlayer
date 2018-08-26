@@ -50,7 +50,6 @@ public class MediaItem implements Serializable {
     /**
      * 专辑名
      */
-     
     private String album;
     
     public String getAlbum() {

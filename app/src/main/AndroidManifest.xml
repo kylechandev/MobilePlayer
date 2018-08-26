@@ -10,7 +10,7 @@
 
     <application
         android:name=".MyApplication"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/movieappicon"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -70,11 +70,13 @@
         <!-- android:excludeFromRecents:使最近运行的程序里面不显示 -->
         <activity
             android:name=".activity.AudioPlayerActivity"
-            android:excludeFromRecents="true"
-            android:launchMode="singleTop"
+            android:launchMode="singleTask"
             android:screenOrientation="portrait" />
 
-        <service android:name=".service.MusicPlayerService">
+        <service
+            android:name=".service.MusicPlayerService"
+            android:enabled="true"
+            android:exported="false">
             <intent-filter>
                 <action android:name="com.fairhand.mobileplayer.OPENAUDIO" />
             </intent-filter>
@@ -89,6 +91,7 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/play_widget_info" />
         </receiver>
+
     </application>
 
 </manifest>

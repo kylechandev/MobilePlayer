@@ -2,9 +2,11 @@ package com.fairhand.mobileplayer.activity;
 
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -91,6 +93,8 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
      * 声音管理器（调节声音）
      */
     private AudioManager mAudioManager;
+    
+    private BroadcastReceiver mReceiver;
     
     /**
      * 当前音量（设置SeekBar使用）
@@ -188,11 +192,12 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
     @Override
     protected void onDestroy() {
         ActivityCollector.removeActivity(this);
+    
         // 取消注册广播
-        /*if (receiver != null) {
-            unregisterReceiver(receiver);
-            receiver = null;
-        }*/
+        if (mReceiver != null) {
+             unregisterReceiver(mReceiver);
+            mReceiver = null;
+        }
         
         // 取消注册EventBus
         EventBus.getDefault().unregister(this);
@@ -339,6 +344,12 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
         
         // 注册EventBus
         EventBus.getDefault().register(this);
+    
+        // 注册广播
+        mReceiver = new MyReceiver();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(MusicPlayerService.SYNC_BUTTON_STATE);
+        registerReceiver(mReceiver, filter);
         
         new Thread(new Runnable() {
             @Override
@@ -353,8 +364,8 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
      */
     public void getData() {
         // 获取传递的判断是否来自于通知栏或bar的标志
-        isFromBar = getIntent().getBooleanExtra("FROMBAR", false);
-        isFromNotification = getIntent().getBooleanExtra("FROMNOTIFICATION", false);
+        isFromBar = getIntent().getBooleanExtra("FROM_BAR", false);
+        isFromNotification = getIntent().getBooleanExtra("FROM_NOTIFICATION", false);
         
         // 若不是从bar或通知进入的，获取点击列表位置
         if (!isFromBar || !isFromNotification) {
@@ -373,7 +384,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
         // 获取到传递的歌曲列表
         ArrayList<MediaItem> mediaItems = (ArrayList<MediaItem>) getIntent().getSerializableExtra(AUDIO_LIST);
         Bundle bundle = new Bundle();
-        bundle.putSerializable("TOSERVICE", mediaItems);
+        bundle.putSerializable("TO_SERVICE", mediaItems);
         serviceIntent.putExtras(bundle);
         startService(serviceIntent);
         // 绑定服务
@@ -777,16 +788,16 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
     private void backData(boolean isPlaying) {
         Log.d(TAG, "准备返回数据啦啦啦啦啦啦");
         Intent returnData = new Intent();
-        returnData.putExtra("ISPLAYING", isPlaying);
-        returnData.putExtra("ISPRESSPREORNEXT", isPressPreOrNext);
+        returnData.putExtra("IS_PLAYING", isPlaying);
+        // returnData.putExtra("IS_PRESS_PRE_OR_NEXT", isPressPreOrNext);
         
         try {
             String name = iMusicPlayerService.getCurrentPlayAudioName();
             String artist = iMusicPlayerService.getCurrentPlayAudioArtist();
             String albumArt = iMusicPlayerService.getAlbumArt(iMusicPlayerService.getAlbumId());
-            returnData.putExtra("MUSICNAME", name);
-            returnData.putExtra("MUSICARTIST", artist);
-            returnData.putExtra("ALBUMART", albumArt);
+            returnData.putExtra("MUSIC_NAME", name);
+            returnData.putExtra("MUSIC_ARTIST", artist);
+            returnData.putExtra("ALBUM_ART", albumArt);
         } catch (RemoteException e) {
             e.printStackTrace();
         }
@@ -805,6 +816,27 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
             e.printStackTrace();
         }
         finish();
+    }
+    
+    /**
+     * 广播类
+     * 处理按钮状态的同步
+     */
+    public class MyReceiver extends BroadcastReceiver {
+    
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // 同步bar的播放按钮
+            try {
+                if (iMusicPlayerService.isPlaying()) {
+                    pauseOrPlayMusic.setBackgroundResource(R.drawable.music_pause_selector);
+                } else {
+                    pauseOrPlayMusic.setBackgroundResource(R.drawable.music_play_selector);
+                }
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
     }
     
 }
