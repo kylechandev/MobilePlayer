@@ -6,7 +6,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.util.AttributeSet;
 
-import com.fairhand.mobileplayer.domain.Lyric;
+import com.fairhand.mobileplayer.entity.Lyric;
 
 import java.util.ArrayList;
 

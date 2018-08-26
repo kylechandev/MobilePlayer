@@ -10,11 +10,9 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -30,7 +28,8 @@ import com.fairhand.mobileplayer.IMusicPlayerService;
 import com.fairhand.mobileplayer.R;
 import com.fairhand.mobileplayer.activity.AudioPlayerActivity;
 import com.fairhand.mobileplayer.activity.MainActivity;
-import com.fairhand.mobileplayer.domain.MediaItem;
+import com.fairhand.mobileplayer.entity.MediaItem;
+import com.fairhand.mobileplayer.utils.MusicUtil;
 import com.fairhand.mobileplayer.utils.SaveCacheUtil;
 
 import org.greenrobot.eventbus.EventBus;
@@ -288,11 +287,6 @@ public class MusicPlayerService extends Service {
         @Override
         public long getAlbumId() {
             return service.getAlbumId();
-        }
-        
-        @Override
-        public String getAlbumArt(long album_id) {
-            return service.getAlbumArt(album_id);
         }
         
         @Override
@@ -567,26 +561,6 @@ public class MusicPlayerService extends Service {
     }
     
     /**
-     * 获取到本地音乐的专辑图片存储地址
-     */
-    private String getAlbumArt(long album_id) {
-        String mUriAlbums = "content://media/external/audio/albums";
-        String[] projection = new String[]{"album_art"};
-        Cursor cursor = getContentResolver().query(
-                Uri.parse(mUriAlbums + "/" + Long.toString(album_id)),
-                projection, null, null, null);
-        String album_art = null;
-        assert cursor != null;
-        if (cursor.getCount() > 0 && cursor.getColumnCount() > 0) {
-            cursor.moveToNext();
-            album_art = cursor.getString(0);
-        }
-        cursor.close();
-        return album_art;
-        
-    }
-    
-    /**
      * 创建通知
      */
     private void createNotification() {
@@ -656,6 +630,7 @@ public class MusicPlayerService extends Service {
         Intent[] intents = new Intent[2];
         intents[0] = Intent.makeRestartActivityTask(new ComponentName(
                 this, MainActivity.class));
+        intents[0].setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         
         intents[1] = new Intent(
                 this,
@@ -687,7 +662,7 @@ public class MusicPlayerService extends Service {
     private Bitmap setMusicImage() {
         //  设置专辑图片
         Bitmap bitmap;
-        String albumArt = getAlbumArt(getAlbumId());
+        String albumArt = MusicUtil.getAlbumArt(getAlbumId());
         if (albumArt == null) {
             bitmap = BitmapFactory.decodeResource(getResources(),
                     R.drawable.default_play_image);

@@ -48,8 +48,9 @@ import com.fairhand.mobileplayer.IMusicPlayerService;
 import com.fairhand.mobileplayer.R;
 import com.fairhand.mobileplayer.activity.AudioPlayerActivity;
 import com.fairhand.mobileplayer.adapter.AudioPagerAdapter;
-import com.fairhand.mobileplayer.domain.MediaItem;
+import com.fairhand.mobileplayer.entity.MediaItem;
 import com.fairhand.mobileplayer.service.MusicPlayerService;
+import com.fairhand.mobileplayer.utils.MusicUtil;
 import com.fairhand.mobileplayer.utils.SaveCacheUtil;
 
 
@@ -173,32 +174,12 @@ public class AudioPagerFragment extends Fragment {
         if ((name != null) || (artist != null) || (albumId != 0)) {
             barMusicName.setText(name);
             barMusician.setText(artist);
-            setMusicImage(getAlbumArt(albumId));
+            setMusicImage(MusicUtil.getAlbumArt(albumId));
         }
         
         setOnListener(musicBar);
         
         return rootView;
-    }
-    
-    /**
-     * 获取到本地音乐的专辑图片存储地址
-     */
-    private String getAlbumArt(long album_id) {
-        String mUriAlbums = "content://media/external/audio/albums";
-        String[] projection = new String[]{"album_art"};
-        Cursor cursor = context.getContentResolver().query(
-                Uri.parse(mUriAlbums + "/" + Long.toString(album_id)),
-                projection, null, null, null);
-        String album_art = null;
-        assert cursor != null;
-        if (cursor.getCount() > 0 && cursor.getColumnCount() > 0) {
-            cursor.moveToNext();
-            album_art = cursor.getString(0);
-        }
-        cursor.close();
-        return album_art;
-        
     }
     
     /**
@@ -416,7 +397,7 @@ public class AudioPagerFragment extends Fragment {
                     // 获取到下一首歌的信息并更新bar的信息
                     String name = iMusicPlayerService.getCurrentPlayAudioName();
                     String artist = iMusicPlayerService.getCurrentPlayAudioArtist();
-                    String album = iMusicPlayerService.getAlbumArt(iMusicPlayerService.getAlbumId());
+                    String album = MusicUtil.getAlbumArt(iMusicPlayerService.getAlbumId());
                     barMusicName.setText(name);
                     barMusician.setText(artist);
                     setMusicImage(album);

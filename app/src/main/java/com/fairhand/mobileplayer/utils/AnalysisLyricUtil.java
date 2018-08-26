@@ -1,6 +1,6 @@
 package com.fairhand.mobileplayer.utils;
 
-import com.fairhand.mobileplayer.domain.Lyric;
+import com.fairhand.mobileplayer.entity.Lyric;
 
 import java.io.BufferedReader;
 import java.io.File;

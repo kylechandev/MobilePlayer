@@ -8,7 +8,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.fairhand.mobileplayer.R;
-import com.fairhand.mobileplayer.domain.MediaItem;
+import com.fairhand.mobileplayer.entity.MediaItem;
 
 import org.xutils.x;
 

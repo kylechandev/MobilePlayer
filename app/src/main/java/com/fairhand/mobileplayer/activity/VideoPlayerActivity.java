@@ -29,7 +29,7 @@ import android.widget.Toast;
 
 import com.fairhand.mobileplayer.ActivityCollector;
 import com.fairhand.mobileplayer.R;
-import com.fairhand.mobileplayer.domain.MediaItem;
+import com.fairhand.mobileplayer.entity.MediaItem;
 import com.fairhand.mobileplayer.utils.JudgeIsNetUriUtil;
 import com.fairhand.mobileplayer.utils.ShowNetSpeedUtil;
 import com.fairhand.mobileplayer.utils.TimeConvertUtil;

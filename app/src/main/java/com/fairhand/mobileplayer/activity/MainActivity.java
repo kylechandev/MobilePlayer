@@ -15,6 +15,7 @@ import android.support.v4.view.GravityCompat;
 import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -30,6 +31,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+    
+    private static final String TAG = MainActivity.class.getSimpleName();
     
     private ViewPager mViewPager;
     
@@ -59,6 +62,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
         ActivityCollector.addActivity(this);
         
+        Log.d(TAG, "Main活动又onCreate了");
+        
         initViews();
         
         initEvents();
@@ -68,9 +73,40 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
     
     @Override
+    protected void onRestart() {
+        super.onRestart();
+        Log.d(TAG, "Main活动又onRestart了");
+    }
+    
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "Main活动又onStart了");
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "Main活动又onResume了");
+    }
+    
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d(TAG, "Main活动又onPause了");
+    }
+    
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(TAG, "Main活动又onStop了");
+    }
+    
+    @Override
     protected void onDestroy() {
         ActivityCollector.removeActivity(this);
         super.onDestroy();
+        Log.d(TAG, "Main活动又onDestroy了");
     }
     
     /**
@@ -160,6 +196,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                     System.exit(0);
                                 } else {// android2.1
                                     ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+                                    assert am != null;
                                     am.restartPackage(getPackageName());
                                 }
                                 break;

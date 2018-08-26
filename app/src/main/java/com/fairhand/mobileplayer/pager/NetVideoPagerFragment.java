@@ -19,7 +19,7 @@ import android.widget.Toast;
 import com.fairhand.mobileplayer.R;
 import com.fairhand.mobileplayer.activity.VideoPlayerActivity;
 import com.fairhand.mobileplayer.adapter.NetVideoPagerAdapter;
-import com.fairhand.mobileplayer.domain.MediaItem;
+import com.fairhand.mobileplayer.entity.MediaItem;
 import com.fairhand.mobileplayer.utils.FindNetVideoUtil;
 import com.fairhand.mobileplayer.widget.XListView;
 

@@ -31,7 +31,7 @@ import android.widget.Toast;
 import com.fairhand.mobileplayer.R;
 import com.fairhand.mobileplayer.activity.VideoPlayerActivity;
 import com.fairhand.mobileplayer.adapter.VideoPagerAdapter;
-import com.fairhand.mobileplayer.domain.MediaItem;
+import com.fairhand.mobileplayer.entity.MediaItem;
 
 
 import java.util.ArrayList;

@@ -15,7 +15,6 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
 import com.fairhand.mobileplayer.R;
-import com.fairhand.mobileplayer.domain.MediaItem;
 
 import java.util.Objects;
 

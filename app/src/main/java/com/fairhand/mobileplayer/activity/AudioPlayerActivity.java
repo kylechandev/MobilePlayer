@@ -37,8 +37,9 @@ import com.bumptech.glide.Glide;
 import com.fairhand.mobileplayer.ActivityCollector;
 import com.fairhand.mobileplayer.IMusicPlayerService;
 import com.fairhand.mobileplayer.R;
-import com.fairhand.mobileplayer.domain.MediaItem;
+import com.fairhand.mobileplayer.entity.MediaItem;
 import com.fairhand.mobileplayer.service.MusicPlayerService;
+import com.fairhand.mobileplayer.utils.MusicUtil;
 import com.fairhand.mobileplayer.utils.TimeConvertUtil;
 import com.fairhand.mobileplayer.widget.CustomLyricView;
 
@@ -721,7 +722,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
     private void setMusicImage() throws RemoteException {
         //  设置专辑图片
         Bitmap bitmap;
-        String albumArt = iMusicPlayerService.getAlbumArt(iMusicPlayerService.getAlbumId());
+        String albumArt = MusicUtil.getAlbumArt(iMusicPlayerService.getAlbumId());
         if (albumArt == null) {
             Glide.with(getBaseContext()).load(R.drawable.default_play_image).into(musicImage);
             musicImage.setVisibility(View.VISIBLE);
@@ -794,7 +795,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
         try {
             String name = iMusicPlayerService.getCurrentPlayAudioName();
             String artist = iMusicPlayerService.getCurrentPlayAudioArtist();
-            String albumArt = iMusicPlayerService.getAlbumArt(iMusicPlayerService.getAlbumId());
+            String albumArt = MusicUtil.getAlbumArt(iMusicPlayerService.getAlbumId());
             returnData.putExtra("MUSIC_NAME", name);
             returnData.putExtra("MUSIC_ARTIST", artist);
             returnData.putExtra("ALBUM_ART", albumArt);

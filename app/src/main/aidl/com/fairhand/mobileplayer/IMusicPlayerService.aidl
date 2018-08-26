@@ -88,11 +88,6 @@ interface IMusicPlayerService {
         long getAlbumId();
 
         /**
-         * 获取到本地音乐的专辑图片
-         */
-        String getAlbumArt(long album_id);
-
-        /**
          * 判断是否播放完毕
          */
         boolean isCompletion();

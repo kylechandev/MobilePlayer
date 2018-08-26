@@ -26,7 +26,7 @@
         <activity
             android:name=".activity.MainActivity"
             android:configChanges="keyboardHidden|screenSize|orientation"
-            android:launchMode="singleTask"
+            android:launchMode="singleTop"
             android:windowSoftInputMode="adjustPan|stateHidden" />
         <activity
             android:name=".activity.VideoPlayerActivity"

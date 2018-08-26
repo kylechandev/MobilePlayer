@@ -1,4 +1,4 @@
-package com.fairhand.mobileplayer.domain;
+package com.fairhand.mobileplayer.entity;
 
 /**
  * 歌词类（每一句歌词）

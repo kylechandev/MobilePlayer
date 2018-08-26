@@ -1,4 +1,4 @@
-package com.fairhand.mobileplayer.domain;
+package com.fairhand.mobileplayer.entity;
 
 import java.io.Serializable;
 
