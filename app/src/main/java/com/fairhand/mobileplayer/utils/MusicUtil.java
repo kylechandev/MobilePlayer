@@ -12,7 +12,7 @@ import java.util.ArrayList;
 
 /**
  * 音乐工具类<br />
- * Create by FairHand on 2018.8.26
+ * Create by FairHand on 2018/8/26.
  * @author FairHand
  */
 public class MusicUtil {

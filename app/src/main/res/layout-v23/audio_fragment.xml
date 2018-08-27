@@ -18,16 +18,17 @@
         android:layout_marginLeft="8dp"
         android:layout_marginRight="8dp"
         android:background="@drawable/search_button"
-        android:drawableLeft="@drawable/ic_search_blue_grey_400_24dp"
         android:drawableStart="@drawable/ic_search_blue_grey_400_24dp"
+        android:drawableTint="@android:color/white"
         android:text="@string/search"
-        android:textColor="@android:color/darker_gray"
+        android:textColor="@android:color/white"
         android:textStyle="bold" />
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:layout_marginTop="6dp"
         android:background="@android:color/white">
 
         <android.support.v7.widget.Toolbar

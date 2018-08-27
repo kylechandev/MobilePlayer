@@ -48,6 +48,7 @@ import com.fairhand.mobileplayer.entity.MediaItem;
 import com.fairhand.mobileplayer.service.MusicPlayerService;
 import com.fairhand.mobileplayer.utils.MusicUtil;
 import com.fairhand.mobileplayer.utils.SaveCacheUtil;
+import com.fairhand.mobileplayer.widget.CustomImageButton;
 
 
 import java.util.ArrayList;
@@ -79,6 +80,8 @@ public class AudioPagerFragment extends Fragment {
     private ImageView barMusicImage;
     
     private ImageView barMusicMenu;
+    
+    private CustomImageButton buttonJumpToSearch;
     
 //    /**
 //     * 传入audio对象序列的KEY
@@ -159,8 +162,9 @@ public class AudioPagerFragment extends Fragment {
         barMusicMenu = rootView.findViewById(R.id.music_bar_menu);
         barMusicImage = rootView.findViewById(R.id.bar_music_image);
         barPlayOrPauseMusic = rootView.findViewById(R.id.bar_play_or_pause_music);
+        buttonJumpToSearch = rootView.findViewById(R.id.button_jump_to_search);
         
-        listView.setTextFilterEnabled(true);
+        listView.setTextFilterEnabled(true);// 开启ListView的过滤功能
         
         // 获取保存的bar信息
         String name = SaveCacheUtil.getMusicBarMusicName(context, "MUSIC_NAME_KEY");
@@ -272,11 +276,17 @@ public class AudioPagerFragment extends Fragment {
                 if (TextUtils.isEmpty(s)) {
                     listView.clearTextFilter();  // 清除ListView的过滤
                 } else {
-                    Log.d(TAG, "开始过滤");
                     listView.setFilterText(s); // 设置ListView的过滤关键词
-                    
+                    listView.dispatchDisplayHint(View.INVISIBLE);// 隐藏弹出的搜索关键字悬浮窗
                 }
                 return false;
+            }
+        });
+        
+        buttonJumpToSearch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                
             }
         });
     }
@@ -320,6 +330,7 @@ public class AudioPagerFragment extends Fragment {
             }
         }
         
+        
         // 注册广播
         mReceiver = new MyReceiver();
         IntentFilter filter = new IntentFilter();
@@ -358,8 +369,7 @@ public class AudioPagerFragment extends Fragment {
             
             if ((mediaItems != null) && (mediaItems.size() > 0)) {
                 // 有数据 设置设配器 提示文本隐藏
-                AudioPagerAdapter audioPagerAdapter = new AudioPagerAdapter(context,
-                        mediaItems);
+                AudioPagerAdapter audioPagerAdapter = new AudioPagerAdapter(context);
                 listView.setAdapter(audioPagerAdapter);
                 noMedia.setVisibility(View.GONE);
             } else {
@@ -367,7 +377,7 @@ public class AudioPagerFragment extends Fragment {
                 noMedia.setVisibility(View.VISIBLE);
                 noMedia.setText("没有发现本地音乐...");
             }
-            loading.setVisibility(View.GONE);
+            loading.setVisibility(View.GONE);// 隐藏加载进度圈
         }
     };
     

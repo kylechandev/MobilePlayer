@@ -1,7 +1,13 @@
 package com.fairhand.mobileplayer.adapter;
 
 import android.content.Context;
+import android.graphics.Color;
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
+import android.text.style.ForegroundColorSpan;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -12,6 +18,7 @@ import android.widget.TextView;
 
 import com.fairhand.mobileplayer.R;
 import com.fairhand.mobileplayer.entity.MediaItem;
+import com.fairhand.mobileplayer.utils.MusicUtil;
 
 import java.util.ArrayList;
 
@@ -19,6 +26,8 @@ import java.util.ArrayList;
  * AudioPagerFragment的适配器
  */
 public class AudioPagerAdapter extends BaseAdapter implements Filterable {
+    
+    private static final String TAG = AudioPagerAdapter.class.getSimpleName();
     
     private ArrayList<MediaItem> mediaItems;
     
@@ -31,12 +40,16 @@ public class AudioPagerAdapter extends BaseAdapter implements Filterable {
     
     private MyFilter mFilter;
     
+    private String searchTextName;
+    
+    private String searchTextArtist;
+    
     /**
-     * @param mediaItems 媒体列表
+     * @param context 上下文
      */
-    public AudioPagerAdapter(Context context, ArrayList<MediaItem> mediaItems) {
+    public AudioPagerAdapter(Context context) {
         this.context = context;
-        this.mediaItems = mediaItems;
+        this.mediaItems = MusicUtil.mediaItems;
         this.backupsMediaItems = mediaItems;
     }
     
@@ -74,16 +87,48 @@ public class AudioPagerAdapter extends BaseAdapter implements Filterable {
         // 根据position得到列表中对应位置的数据
         MediaItem mediaItem = mediaItems.get(position);
         
+        // 获取歌名和歌手
+        String musicName = mediaItem.getMediaName();
+        String musicArtist = mediaItem.getMusicArtist();
+        
+        /*高亮搜索关键字（暂时弃用）
+        if (searchTextName != null && musicName.contains(searchTextName)) {
+            SpannableStringBuilder spannableName = new SpannableStringBuilder();
+            spannableName.append(musicName);
+            ForegroundColorSpan nameColorSpan = new ForegroundColorSpan(Color.parseColor("#009ad6"));
+            spannableName.setSpan(nameColorSpan,
+                    musicName.indexOf(searchTextName),
+                    musicName.indexOf(searchTextName) + searchTextName.length(),
+                    Spannable.SPAN_INCLUSIVE_INCLUSIVE);
+            holder.musicName.setText(spannableName);
+        } else {
+            // 设置音乐名称
+            holder.musicName.setText(musicName);
+        }
+        
+        if (searchTextArtist != null && musicArtist.contains(searchTextArtist)) {
+            SpannableString spannableArtist = new SpannableString(musicArtist);
+            ForegroundColorSpan artistColorSpan = new ForegroundColorSpan(Color.parseColor("#009ad6"));
+             spannableArtist.setSpan(artistColorSpan,
+                    musicArtist.indexOf(searchTextArtist),
+                    musicArtist.indexOf(searchTextArtist) + searchTextArtist.length(),
+                    Spannable.SPAN_INCLUSIVE_INCLUSIVE);
+            holder.musicArtist.setText(spannableArtist);
+        } else {
+            // 设置歌手
+            holder.musicArtist.setText(musicArtist);
+        }*/
+    
         // 设置音乐名称
-        holder.musicName.setText(mediaItem.getMediaName());
+        holder.musicName.setText(musicName);
         // 设置歌手
-        holder.musicArtist.setText(mediaItem.getMusicArtist());
+        holder.musicArtist.setText(musicArtist);
         
         return convertView;
     }
     
     /**
-     * 当ListView调用setTextFilter()方法的时候调用该方法
+     * 当ListView调用setTextFilter()方法的时候回调该方法
      */
     @Override
     public Filter getFilter() {
@@ -97,7 +142,7 @@ public class AudioPagerAdapter extends BaseAdapter implements Filterable {
      * 自定义一个过滤器的类来定义过滤规则
      */
     class MyFilter extends Filter {
-    
+        
         /**
          * 定义过滤规则
          */
@@ -112,25 +157,32 @@ public class AudioPagerAdapter extends BaseAdapter implements Filterable {
                 // 否则把符合条件的数据添加到集合中
                 filterMediaItems = new ArrayList<>();
                 for (MediaItem mediaItem : backupsMediaItems) {
-                    if (mediaItem.getMediaName().contains(constraint)
-                            || mediaItem.getMusicArtist().contains(constraint)) {
+                    if (mediaItem.getMediaName().contains(constraint)) {
+                        searchTextName = (String) constraint;
+                        filterMediaItems.add(mediaItem);
+                    } else if (mediaItem.getMusicArtist().contains(constraint)) {
+                        searchTextArtist = (String) constraint;
                         filterMediaItems.add(mediaItem);
                     }
                 }
             }
             
-            results.values = filterMediaItems;// 将过滤完的数据保存到FilterResults的value变量中
-            results.count = filterMediaItems.size();// 将过滤完数据的大小保存到FilterResults的count变量中
-    
+            // 将过滤完的数据保存到FilterResults的value变量中
+            results.values = filterMediaItems;
+            // 最后将过滤完数据的大小保存到FilterResults的count变量中
+            results.count = filterMediaItems.size();
+            
             return results;
         }
-    
+        
         /**
          * 告诉适配器更新界面
          */
         @Override
         protected void publishResults(CharSequence constraint, FilterResults results) {
+            // noinspection unchecked
             mediaItems = (ArrayList<MediaItem>) results.values;// 设置过滤过的数据
+            MusicUtil.mediaItems = mediaItems;// 更新播放列表
             if (results.count > 0) {
                 notifyDataSetChanged();// 通知数据发生改变
             } else {
