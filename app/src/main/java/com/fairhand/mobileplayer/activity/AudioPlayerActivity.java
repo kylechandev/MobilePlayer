@@ -37,7 +37,6 @@ import com.bumptech.glide.Glide;
 import com.fairhand.mobileplayer.ActivityCollector;
 import com.fairhand.mobileplayer.IMusicPlayerService;
 import com.fairhand.mobileplayer.R;
-import com.fairhand.mobileplayer.entity.MediaItem;
 import com.fairhand.mobileplayer.service.MusicPlayerService;
 import com.fairhand.mobileplayer.utils.MusicUtil;
 import com.fairhand.mobileplayer.utils.TimeConvertUtil;
@@ -46,8 +45,6 @@ import com.fairhand.mobileplayer.widget.CustomLyricView;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
-
-import java.util.ArrayList;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -59,11 +56,6 @@ import de.hdodenhof.circleimageview.CircleImageView;
 public class AudioPlayerActivity extends BaseActivity implements View.OnClickListener {
     
     private static final String TAG = AudioPlayerActivity.class.getSimpleName();
-    
-    /**
-     * 传入audio对象序列的KEY
-     */
-    private static final String AUDIO_LIST = "audiolist";
     
     /**
      * 播放进度更新Message What
@@ -88,7 +80,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
     /**
      * 校准播放模式
      */
-    private static final int CHECKPLAYMODE = 5;
+    private static final int CHECK_PLAY_MODE = 5;
     
     /**
      * 声音管理器（调节声音）
@@ -382,11 +374,6 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
         Intent serviceIntent = new Intent(this, MusicPlayerService.class);
         // 设置动作（表示启动能够响应这个action的活动）
         serviceIntent.setAction("com.fairhand.mobileplayer.OPENAUDIO");
-        // 获取到传递的歌曲列表
-        ArrayList<MediaItem> mediaItems = (ArrayList<MediaItem>) getIntent().getSerializableExtra(AUDIO_LIST);
-        Bundle bundle = new Bundle();
-        bundle.putSerializable("TO_SERVICE", mediaItems);
-        serviceIntent.putExtras(bundle);
         startService(serviceIntent);
         // 绑定服务
         bindService(serviceIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
@@ -594,7 +581,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
                     }
                     break;
                     
-                case CHECKPLAYMODE :// 校准播放模式
+                case CHECK_PLAY_MODE :// 校准播放模式
                     try {
                         int PLAY_MODE = iMusicPlayerService.getPlayMode();// 获取到播放模式
                         if (PLAY_MODE == MusicPlayerService.REPEAT_ALL) {
@@ -711,7 +698,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
         new Thread(new Runnable() {
             @Override
             public void run() {
-                handler.sendEmptyMessage(CHECKPLAYMODE);
+                handler.sendEmptyMessage(CHECK_PLAY_MODE);
             }
         }).start();
     }
@@ -762,7 +749,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
     }
     
     /**
-     * 物理按键监听
+     * 物理按键监听<br />
      * 实现关联Voice的SeekBar与系统音量调节
      */
     @Override
@@ -820,7 +807,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
     }
     
     /**
-     * 广播类
+     * 广播类<br />
      * 处理按钮状态的同步
      */
     public class MyReceiver extends BroadcastReceiver {

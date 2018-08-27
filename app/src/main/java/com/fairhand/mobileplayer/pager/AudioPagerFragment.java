@@ -4,23 +4,19 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
-import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
@@ -84,10 +80,10 @@ public class AudioPagerFragment extends Fragment {
     
     private ImageView barMusicMenu;
     
-    /**
-     * 传入audio对象序列的KEY
-     */
-    private static final String AUDIO_LIST = "audiolist";
+//    /**
+//     * 传入audio对象序列的KEY
+//     */
+//    private static final String AUDIO_LIST = "audiolist";
     
     /**
      * 当前点击音频位置
@@ -227,11 +223,6 @@ public class AudioPagerFragment extends Fragment {
                 // 启动播放界面
                 Intent intent = new Intent(context, AudioPlayerActivity.class);
                 intent.putExtra("FROM_BAR", true);// 标识来自BAR
-                
-                Bundle bundle = new Bundle();
-                bundle.putSerializable(AUDIO_LIST, mediaItems);
-                // 传入audio对象序列
-                intent.putExtras(bundle);
                 startActivityForResult(intent, 999);
             }
         });
@@ -258,10 +249,6 @@ public class AudioPagerFragment extends Fragment {
                 // 传递数据列表 对象 序列化
                 Intent intent = new Intent(context, AudioPlayerActivity.class);
                 
-                Bundle bundle = new Bundle();
-                bundle.putSerializable(AUDIO_LIST, mediaItems);
-                // 传入audio对象序列
-                intent.putExtras(bundle);
                 // 传入位置
                 intent.putExtra(AUDIO_POSITION, position);
                 
@@ -326,7 +313,10 @@ public class AudioPagerFragment extends Fragment {
                 ActivityCompat.requestPermissions(Objects.requireNonNull(getActivity()),
                         new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
             } else {
-                getDataFromLocal();
+                MusicUtil.getDataFromLocal();
+                mediaItems = MusicUtil.mediaItems;
+                // handler发消息
+                handler.sendEmptyMessage(0);
             }
         }
         
@@ -481,7 +471,10 @@ public class AudioPagerFragment extends Fragment {
         switch (requestCode) {
             case 1:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    getDataFromLocal();
+                    MusicUtil.getDataFromLocal();
+                    mediaItems = MusicUtil.mediaItems;
+                    // handler发消息
+                    handler.sendEmptyMessage(0);
                 } else {
                     Toast.makeText(context, "无法获取本地数据读取权限", Toast.LENGTH_SHORT).show();
                     Objects.requireNonNull(getActivity()).finish();
@@ -490,72 +483,6 @@ public class AudioPagerFragment extends Fragment {
             default:
                 break;
         }
-    }
-    
-    /**
-     * 获取本地数据
-     * 1)遍历sdcard，后缀名
-     * 2)从内容提供器中获取视频
-     * 3)若为6.0以上，需动态读取sdcard的权限
-     */
-    private void getDataFromLocal() {
-        mediaItems = new ArrayList<>();
-        
-        new Thread() {
-            @Override
-            public void run() {
-                super.run();
-                
-                // 获取一个ContentResolver
-                ContentResolver resolver = context.getContentResolver();
-                Uri uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-                String[] objs = {
-                        MediaStore.Audio.Media.TITLE,// 歌名
-                        MediaStore.Audio.Media.DURATION,// 音乐总时长
-                        MediaStore.Audio.Media.SIZE,// 音乐的文件大小
-                        MediaStore.Audio.Media.DATA,// 音乐的绝对地址
-                        MediaStore.Audio.Media.ARTIST,// 歌手
-                        MediaStore.Audio.Media.ALBUM_ID,// 专辑图片ID
-                        MediaStore.Audio.Media.ALBUM// 专辑名
-                };
-                Cursor cursor = resolver.query(uri, objs, null, null, null);
-                if (cursor != null) {
-                    while (cursor.moveToNext()) {
-                        
-                        MediaItem mediaItem = new MediaItem();
-                        mediaItems.add(mediaItem);
-                        
-                        String name = cursor.getString(0);// 音乐的名称
-                        mediaItem.setMediaName(name);
-                        
-                        long duration = cursor.getLong(1);// 音乐的时长
-                        mediaItem.setDuration(duration);
-                        
-                        long size = cursor.getLong(2);// 音乐的大小
-                        mediaItem.setSize(size);
-                        
-                        String data = cursor.getString(3);// 音乐的播放地址
-                        mediaItem.setData(data);
-                        
-                        String artist = cursor.getString(4);// 歌手
-                        mediaItem.setMusicArtist(artist);
-                        
-                        long albumId = cursor.getLong(5);// 专辑图片
-                        mediaItem.setAlbumId(albumId);
-                        
-                        String album = cursor.getString(6);// 专辑名
-                        mediaItem.setAlbum(album);
-                        
-                    }
-                    cursor.close();
-                }
-                
-                // handler发消息
-                handler.sendEmptyMessage(0);
-                
-            }
-        }.start();
-        
     }
     
 }

@@ -14,7 +14,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -48,16 +47,29 @@ public class MusicPlayerService extends Service {
     private static final String TAG = MusicPlayerService.class.getSimpleName();
     
     /**
-     * 广播发送 KEY
+     * 广播发送 ACTION 播放完成自动切歌通知bar更新信息
      */
     public static final String UPDATE_VIEW_INFO = "com.fairhand.mobileplayer.OPENAUDIO";
     
+    /**
+     * 广播发送 ACTION 同步通知、播放器、bar的播放按钮状态
+     */
     public static final String SYNC_BUTTON_STATE = "com.fairhand.mobileplayer.SYNC_BUTTON_STATE";
     
     /**
-     * 传入audio对象序列的KEY
+     * 广播发送 ACTION 通知的播放按钮点击
      */
-    private static final String AUDIO_LIST = "audiolist";
+    public static String STATUS_BAR_PLAY_CLICK_ACTION = "status_bar_cover_click_action";
+    
+    /**
+     * 广播发送 ACTION 通知的下一首按钮点击
+     */
+    public static String STATUS_BAR_NEXT_CLICK_ACTION = "status_bar_play_click_action";
+    
+    /**
+     * 广播发送 ACTION 通知的上一首按钮点击
+     */
+    public static String STATUS_BAR_PRE_CLICK_ACTION = "status_bar_pre_click_action";
     
     /**
      * 更新通知信息MessageWhat
@@ -89,12 +101,20 @@ public class MusicPlayerService extends Service {
      */
     private BroadcastReceiver mReceiver;
     
+    /**
+     * 通知管理类
+     */
     private NotificationManager manager;
     
+    /**
+     * 用以自定义通知样式
+     */
+    private RemoteViews normalView;
     private RemoteViews bigView;
     
-    private RemoteViews normalView;
-    
+    /**
+     * 构造通知
+     */
     private NotificationCompat.Builder notification;
     
     /**
@@ -105,7 +125,6 @@ public class MusicPlayerService extends Service {
     /**
      * 单曲循环
      */
-    
     public static final int REPEAT_SINGLE = 2;
     
     /**
@@ -117,23 +136,6 @@ public class MusicPlayerService extends Service {
      * 播放模式（默认为全部循环）
      */
     private int PLAY_MODE = REPEAT_ALL;
-    
-    
-    /**
-     * 通知的播放按钮点击
-     */
-    public static String STATUS_BAR_PLAY_CLICK_ACTION = "status_bar_cover_click_action";
-    
-    /**
-     * 通知的下一首按钮点击
-     */
-    public static String STATUS_BAR_NEXT_CLICK_ACTION = "status_bar_play_click_action";
-    
-    /**
-     * 通知的上一首按钮点击
-     */
-    public static String STATUS_BAR_PRE_CLICK_ACTION = "status_bar_pre_click_action";
-    
     
     @Override
     public void onCreate() {
@@ -197,9 +199,9 @@ public class MusicPlayerService extends Service {
         
         Log.d(TAG, "服务onStartCommand");
         
-        mediaItems = (ArrayList<MediaItem>) intent.getSerializableExtra("TO_SERVICE");
+        mediaItems = MusicUtil.mediaItems;
         
-        Log.d(TAG, "看看你为社么空" + mediaItems);
+        Log.d(TAG, "看看你是不是空？" + mediaItems.size());
         
         return Service.START_STICKY;
     }
@@ -329,10 +331,8 @@ public class MusicPlayerService extends Service {
                 mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                     @Override
                     public void onPrepared(MediaPlayer mp) {
-                        // 通知activity获取歌曲信息
-                        // notifyAcquireMusicIcon(UPDATE_VIEW_INFO);
                         
-                        // 发消息
+                        // 发消息 通知Activity获取歌曲信息
                         EventBus.getDefault().post("MESSAGE_EVENT");
                         
                         startPlayMusic();// 准备好后开始播放音乐
@@ -392,14 +392,6 @@ public class MusicPlayerService extends Service {
         Intent intent = new Intent(action);
         sendBroadcast(intent);
     }
-    
-    //    /**
-    //     * 通过action发送广播给activity更新信息
-    //     */
-    //    private void notifyAcquireMusicIcon(String action) {
-    //        Intent intent = new Intent(action);
-    //        sendBroadcast(intent);
-    //    }
     
     /**
      * 播放音乐
@@ -615,15 +607,15 @@ public class MusicPlayerService extends Service {
                                .setCustomBigContentView(bigView)
                                .setAutoCancel(false)
                                .setContentIntent(pendingIntent);
-        
-        updatedNotification();
+    
+        manager.notify(1, notification.build());
         
     }
     
     /**
-     * 创建一个Intent数组
-     * 该方法中指定的数组长度可以理解为返回时候的页面数
-     * makeRestartActivityTask方法指定了程序的Root Activity
+     * 创建一个Intent数组<br />
+     * 该方法中指定的数组长度可以理解为返回时候的页面数<br />
+     * makeRestartActivityTask方法指定了程序的Root Activity<br />
      * 数组的最后一个Intent为第一个显示的Activity，即点击Notification跳转到的页面
      */
     private Intent[] makeIntentsArray() {
@@ -637,10 +629,6 @@ public class MusicPlayerService extends Service {
                 AudioPlayerActivity.class);
         intents[1].putExtra("FROM_NOTIFICATION", true);// 标识来自状态栏
         
-        Bundle bundle = new Bundle();
-        bundle.putSerializable(AUDIO_LIST, mediaItems);
-        // 传入audio对象序列
-        intents[1].putExtras(bundle);
         return intents;
     }
     
@@ -673,7 +661,7 @@ public class MusicPlayerService extends Service {
     }
     
     /**
-     * 广播类
+     * 广播类<br />
      * 处理来自通知的按钮点击事件
      */
     private class MyReceiver extends BroadcastReceiver {

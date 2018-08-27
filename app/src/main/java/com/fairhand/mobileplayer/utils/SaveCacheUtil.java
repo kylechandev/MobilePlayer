@@ -7,6 +7,8 @@ import com.fairhand.mobileplayer.service.MusicPlayerService;
 
 /**
  * 保存缓存信息工具
+ *
+ * @author FairHand
  */
 public class SaveCacheUtil {
     
@@ -30,10 +32,11 @@ public class SaveCacheUtil {
     
     /**
      * 保存music_bar信息
-     * @param artistValues 歌手信息
-     * @param nameValues 歌名信息
+     *
+     * @param artistValues   歌手信息
+     * @param nameValues     歌名信息
      * @param positionValues 歌曲在ListView中的位置信息
-     * @param albumValues 歌曲专辑图片id
+     * @param albumValues    歌曲专辑图片id
      */
     public static void putMusicBarInfo(Context context, String nameKey, String artistKey,
                                        String positionKey, String albumKey,
