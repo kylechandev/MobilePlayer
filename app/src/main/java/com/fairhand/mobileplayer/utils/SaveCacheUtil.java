@@ -93,7 +93,7 @@ public class SaveCacheUtil {
      */
     public static void putCurrentPosition(Context context, String key, int values) {
         SharedPreferences.Editor editor
-                = context.getSharedPreferences("CURRENTPOSITION", Context.MODE_PRIVATE).edit();
+                = context.getSharedPreferences("CURRENT_POSITION", Context.MODE_PRIVATE).edit();
         editor.putInt(key, values).apply();
     }
     
@@ -102,8 +102,8 @@ public class SaveCacheUtil {
      */
     public static int getCurrentPosition(Context context, String key) {
         SharedPreferences sharedPreferences =
-                context.getSharedPreferences("CURRENTPOSITION", Context.MODE_PRIVATE);
-        return sharedPreferences.getInt(key, 0);
+                context.getSharedPreferences("CURRENT_POSITION", Context.MODE_PRIVATE);
+        return sharedPreferences.getInt(key, -1);
     }
     
 }

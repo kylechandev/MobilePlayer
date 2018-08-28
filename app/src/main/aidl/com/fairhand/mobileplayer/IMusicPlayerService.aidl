@@ -92,4 +92,9 @@ interface IMusicPlayerService {
          */
         boolean isCompletion();
 
+        /**
+         * 通过传入的位置获取到播放的音频的名字
+         */
+        String getPlayAudioNameForPosition(int position);
+
 }

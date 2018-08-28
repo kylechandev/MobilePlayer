@@ -295,6 +295,11 @@ public class MusicPlayerService extends Service {
         public boolean isCompletion() {
             return service.isCompletion();
         }
+    
+        @Override
+        public String getPlayAudioNameForPosition(int position) {
+            return service.getPlayAudioNameForPosition(position);
+        }
     };
     
     @Nullable
@@ -439,6 +444,14 @@ public class MusicPlayerService extends Service {
     }
     
     /**
+     * 通过传入的位置获取到播放的音频的名字
+     */
+    private String getPlayAudioNameForPosition(int position) {
+        MediaItem currentMediaItem = mediaItems.get(position);
+        return currentMediaItem.getMediaName();
+    }
+    
+    /**
      * 获取到当前播放的音频的歌手
      */
     private String getCurrentPlayAudioArtist() {
@@ -456,8 +469,6 @@ public class MusicPlayerService extends Service {
      * 播放上一首音乐
      */
     private void playPreviousAudio() {
-        updatedNotification();
-        
         if (PLAY_MODE == MusicPlayerService.REPEAT_ALL) {
             position--;
         } else if (PLAY_MODE == MusicPlayerService.REPEAT_SINGLE) {
@@ -466,25 +477,21 @@ public class MusicPlayerService extends Service {
             position = new Random().nextInt(mediaItems.size());
         }
         
-        // 若获取的位置小于0，将position置为0
-        // noinspection StatementWithEmptyBody
+        // 若获取的位置小于0，将position置为列表最后一个
         if (position < 0) {
-        } else {
+            position = mediaItems.size() - 1;
+        } else if (position >= mediaItems.size()) {
             // 在处于最后一个位置时点了很多次下一首后，点击上一首后直接设置position为mediaItems.size() - 2
-            if (position >= mediaItems.size()) {
-                position = mediaItems.size() - 2;
-            }
-            openAudio(position);
+            position = mediaItems.size() - 2;
         }
-        
+        openAudio(position);
+        updatedNotification();
     }
     
     /**
      * 播放下一首音乐
      */
     private void playNextAudio() {
-        updatedNotification();
-        
         if (PLAY_MODE == MusicPlayerService.REPEAT_ALL) {
             position++;
         } else if (PLAY_MODE == MusicPlayerService.REPEAT_SINGLE) {
@@ -494,16 +501,14 @@ public class MusicPlayerService extends Service {
         }
         
         // 若获取的位置大于或等于列表大小，将position置为0
-        // noinspection StatementWithEmptyBody
         if (position >= mediaItems.size()) {
-        } else {
+            position = 0;
+        } else if (position < 0) {
             // 在处于第一个位置时点了很多次上一首后，点击下一首后直接设置position为1
-            if (position < 0) {
-                position = 1;
-            }
-            openAudio(position);
+            position = 1;
         }
-        
+        openAudio(position);
+        updatedNotification();
     }
     
     /**
@@ -555,7 +560,7 @@ public class MusicPlayerService extends Service {
      * 创建通知
      */
     private void createNotification() {
-    
+        
         // 设置通知点击跳转到AudioPlayerActivity
         PendingIntent pendingIntent =
                 PendingIntent.getActivities(this, 0,
@@ -606,7 +611,7 @@ public class MusicPlayerService extends Service {
                                .setCustomBigContentView(bigView)
                                .setAutoCancel(false)
                                .setContentIntent(pendingIntent);
-    
+        
         manager.notify(1, notification.build());
         
     }

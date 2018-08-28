@@ -111,7 +111,7 @@ public class AudioPagerAdapter extends BaseAdapter implements Filterable {
             spannableName.append(musicName);
             // 为SpannableStringBuilder设置关键字前景色
             ForegroundColorSpan nameColorSpan
-                    = new ForegroundColorSpan(Color.parseColor("#009AD6"));
+                    = new ForegroundColorSpan(Color.parseColor("#F54681"));
             // 设置类型，作用开始位置，作用结束位置，前后包含
             spannableName.setSpan(nameColorSpan,
                     musicName.indexOf(searchTextName),
@@ -129,7 +129,7 @@ public class AudioPagerAdapter extends BaseAdapter implements Filterable {
             SpannableString spannableArtist = new SpannableString(musicArtist);
             // 为SpannableString设置关键字前景色
             ForegroundColorSpan artistColorSpan
-                    = new ForegroundColorSpan(Color.parseColor("#009AD6"));
+                    = new ForegroundColorSpan(Color.parseColor("#F54681"));
             // 设置类型，作用开始位置，作用结束位置，前后包含
             spannableArtist.setSpan(artistColorSpan,
                     musicArtist.indexOf(searchTextArtist),

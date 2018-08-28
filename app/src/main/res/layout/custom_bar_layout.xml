@@ -27,7 +27,7 @@
         app:tabMinWidth="60dp"
         app:tabMode="fixed"
         app:tabTextAppearance="@style/TabLayout.TabText"
-        app:tabSelectedTextColor="#f54681">
+        app:tabSelectedTextColor="#F54681">
 
         <android.support.design.widget.TabItem
             android:layout_width="wrap_content"

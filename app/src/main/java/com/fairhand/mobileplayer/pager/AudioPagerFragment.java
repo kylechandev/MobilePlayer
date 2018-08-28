@@ -388,13 +388,13 @@ public class AudioPagerFragment extends Fragment {
             bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.default_play_image);
             roundedBitmap = RoundedBitmapDrawableFactory.create(getResources(), bitmap);
             roundedBitmap.setAntiAlias(true);// 抗锯齿
-            roundedBitmap.setCornerRadius(52);// 圆角度数
+            roundedBitmap.setCornerRadius(81);// 圆角度数
             Glide.with(this).load(roundedBitmap).into(barMusicImage);
         } else {
             bitmap = BitmapFactory.decodeFile(albumArt);
             roundedBitmap = RoundedBitmapDrawableFactory.create(getResources(), bitmap);
             roundedBitmap.setAntiAlias(true);// 抗锯齿
-            roundedBitmap.setCornerRadius(52);// 圆角度数
+            roundedBitmap.setCornerRadius(81);// 圆角度数
             Glide.with(this).load(roundedBitmap).into(barMusicImage);
         }
     }

@@ -21,6 +21,7 @@ import android.widget.TextView;
 import com.fairhand.mobileplayer.R;
 import com.fairhand.mobileplayer.adapter.AudioPagerAdapter;
 import com.fairhand.mobileplayer.utils.MusicUtil;
+import com.fairhand.mobileplayer.utils.SaveCacheUtil;
 
 /**
  * 音乐搜索类<br />
@@ -36,11 +37,6 @@ public class SearchActivity extends AppCompatActivity {
     
     private TextView notFindMusic;
     
-    /**
-     * 当前点击音频位置
-     */
-    private static final String AUDIO_POSITION = "position";
-    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -53,6 +49,18 @@ public class SearchActivity extends AppCompatActivity {
         initData();
         
     }
+    
+    @Override
+    protected void onDestroy() {
+        SaveCacheUtil.putCurrentPosition(SearchActivity.this,
+                "POSITION_KEY", -1);// 重置当前播放位置
+        super.onDestroy();
+    }
+    
+    /**
+     * 当前点击音频位置
+     */
+    private static final String AUDIO_POSITION = "position";
     
     /**
      * 设置ToolBar
@@ -95,6 +103,9 @@ public class SearchActivity extends AppCompatActivity {
      * 初始化数据
      */
     private void initData() {
+        SaveCacheUtil.putCurrentPosition(SearchActivity.this,
+                "POSITION_KEY", -1);// 重置当前播放位置
+        
         // 设置适配器
         searchListView.setAdapter(new AudioPagerAdapter(this));
         // 开启ListView的过滤功能
@@ -106,7 +117,9 @@ public class SearchActivity extends AppCompatActivity {
                 
                 MusicUtil.saveMusicInfo(position);
                 
-                Intent intent = new Intent(SearchActivity.this, AudioPlayerActivity.class);
+                Intent intent = new Intent(SearchActivity.this,
+                        AudioPlayerActivity.class);
+                
                 // 传入位置
                 intent.putExtra(AUDIO_POSITION, position);
                 
@@ -143,7 +156,6 @@ public class SearchActivity extends AppCompatActivity {
                     searchListView.clearTextFilter();  // 清除ListView的过滤
                     notFindMusic.setVisibility(View.GONE);// 隐藏提示文本
                     searchListView.setVisibility(View.INVISIBLE);// 隐藏搜索列表
-                    MusicUtil.getDataFromLocal();// 还原数据
                 } else {
                     searchListView.setFilterText(s); // 设置ListView的过滤关键词
                     searchListView.dispatchDisplayHint(View.INVISIBLE);// 隐藏弹出的搜索关键字悬浮窗

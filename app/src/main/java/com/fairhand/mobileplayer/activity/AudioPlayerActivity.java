@@ -39,6 +39,7 @@ import com.fairhand.mobileplayer.IMusicPlayerService;
 import com.fairhand.mobileplayer.R;
 import com.fairhand.mobileplayer.service.MusicPlayerService;
 import com.fairhand.mobileplayer.utils.MusicUtil;
+import com.fairhand.mobileplayer.utils.SaveCacheUtil;
 import com.fairhand.mobileplayer.utils.TimeConvertUtil;
 import com.fairhand.mobileplayer.widget.CustomLyricView;
 
@@ -135,6 +136,11 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
     private boolean isPressPreOrNext = false;
     
     /**
+     * 当前正在播放的音乐位置
+     */
+    private int currentPlayingMusicPosition = -1;
+    
+    /**
      * 布局组件
      */
     private LinearLayout musicVolumnCotroller;
@@ -185,10 +191,10 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
     @Override
     protected void onDestroy() {
         ActivityCollector.removeActivity(this);
-    
+        
         // 取消注册广播
         if (mReceiver != null) {
-             unregisterReceiver(mReceiver);
+            unregisterReceiver(mReceiver);
             mReceiver = null;
         }
         
@@ -337,7 +343,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
         
         // 注册EventBus
         EventBus.getDefault().register(this);
-    
+        
         // 注册广播
         mReceiver = new MyReceiver();
         IntentFilter filter = new IntentFilter();
@@ -358,7 +364,8 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
     public void getData() {
         // 获取传递的判断是否来自于通知栏或bar的标志
         isFromBar = getIntent().getBooleanExtra("FROM_BAR", false);
-        isFromNotification = getIntent().getBooleanExtra("FROM_NOTIFICATION", false);
+        isFromNotification = getIntent().getBooleanExtra(
+                "FROM_NOTIFICATION", false);
         
         // 若不是从bar或通知进入的，获取点击列表位置
         if (!isFromBar || !isFromNotification) {
@@ -394,7 +401,24 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
                 try {
                     if (!isFromNotification && !isFromBar) {
                         // 从列表进入
-                        iMusicPlayerService.openAudio(position);
+                        // 获取到位置，若还是上一次的播放位置，则继续播放，否则切歌
+                        currentPlayingMusicPosition =
+                                SaveCacheUtil.getCurrentPosition(
+                                        AudioPlayerActivity.this,
+                                        "POSITION_KEY");
+                        if (currentPlayingMusicPosition != position) {
+                            iMusicPlayerService.openAudio(position);
+                        } else {
+                            showViewData();
+                            checkPlayMode();
+                            pauseOrPlayMusic(true);
+                        }
+                        currentPlayingMusicPosition = position;// 更新当前播放位置
+                        Log.d(TAG, "当前播放的音乐处于的位置:" + currentPlayingMusicPosition);
+                        // 保存当前播放位置
+                        SaveCacheUtil.putCurrentPosition(
+                                AudioPlayerActivity.this, "POSITION_KEY",
+                                currentPlayingMusicPosition);
                     } else {
                         // 从通知栏或bar进入
                         showViewData();
@@ -548,10 +572,12 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
                     seekbarVoice.setProgress(currentVoice);
                     // 设置SeekBar滑块颜色
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        seekbarVoice.getThumb().setColorFilter(ContextCompat.getColor(getBaseContext(),
-                                R.color.progress_thumb), PorterDuff.Mode.SRC_ATOP);
-                        seekbarMusic.getThumb().setColorFilter(ContextCompat.getColor(getBaseContext(),
-                                R.color.progress_thumb), PorterDuff.Mode.SRC_ATOP);
+                        seekbarVoice.getThumb().setColorFilter(
+                                ContextCompat.getColor(getBaseContext(),
+                                        R.color.progress_thumb), PorterDuff.Mode.SRC_ATOP);
+                        seekbarMusic.getThumb().setColorFilter(
+                                ContextCompat.getColor(getBaseContext(),
+                                        R.color.progress_thumb), PorterDuff.Mode.SRC_ATOP);
                     }
                     
                     break;
@@ -580,18 +606,21 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
                         e.printStackTrace();
                     }
                     break;
-                    
-                case CHECK_PLAY_MODE :// 校准播放模式
+                
+                case CHECK_PLAY_MODE:// 校准播放模式
                     try {
                         int PLAY_MODE = iMusicPlayerService.getPlayMode();// 获取到播放模式
                         if (PLAY_MODE == MusicPlayerService.REPEAT_ALL) {
-                            musicPlayMode.setBackgroundResource(R.drawable.music_repeat_all_mode_selector);
+                            musicPlayMode.setBackgroundResource(
+                                    R.drawable.music_repeat_all_mode_selector);
                         } else if (PLAY_MODE == MusicPlayerService.REPEAT_SINGLE) {
-                            musicPlayMode.setBackgroundResource(R.drawable.music_repeat_single_mode_selector);
+                            musicPlayMode.setBackgroundResource(
+                                    R.drawable.music_repeat_single_mode_selector);
                         } else if (PLAY_MODE == MusicPlayerService.REPEAT_RAND) {
-                            musicPlayMode.setBackgroundResource(R.drawable.music_repeat_random_mode_selector);
+                            musicPlayMode.setBackgroundResource(
+                                    R.drawable.music_repeat_random_mode_selector);
                         }
-        
+                        
                     } catch (RemoteException e) {
                         e.printStackTrace();
                     }
@@ -671,16 +700,22 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
             int PLAY_MODE = iMusicPlayerService.getPlayMode();// 获取到播放模式
             if (PLAY_MODE == MusicPlayerService.REPEAT_ALL) {// 如果是全部，切换为单曲循环
                 PLAY_MODE = MusicPlayerService.REPEAT_SINGLE;
-                musicPlayMode.setBackgroundResource(R.drawable.music_repeat_single_mode_selector);
-                Toast.makeText(AudioPlayerActivity.this, "单曲循环", Toast.LENGTH_SHORT).show();
+                musicPlayMode.setBackgroundResource(
+                        R.drawable.music_repeat_single_mode_selector);
+                Toast.makeText(AudioPlayerActivity.this,
+                        "单曲循环", Toast.LENGTH_SHORT).show();
             } else if (PLAY_MODE == MusicPlayerService.REPEAT_SINGLE) {// 如果是单曲，切换为随机播放
                 PLAY_MODE = MusicPlayerService.REPEAT_RAND;
-                musicPlayMode.setBackgroundResource(R.drawable.music_repeat_random_mode_selector);
-                Toast.makeText(AudioPlayerActivity.this, "随机播放", Toast.LENGTH_SHORT).show();
+                musicPlayMode.setBackgroundResource(
+                        R.drawable.music_repeat_random_mode_selector);
+                Toast.makeText(AudioPlayerActivity.this,
+                        "随机播放", Toast.LENGTH_SHORT).show();
             } else if (PLAY_MODE == MusicPlayerService.REPEAT_RAND) {// 如果是随机，切换为全部循环
                 PLAY_MODE = MusicPlayerService.REPEAT_ALL;
-                musicPlayMode.setBackgroundResource(R.drawable.music_repeat_all_mode_selector);
-                Toast.makeText(AudioPlayerActivity.this, "全部循环", Toast.LENGTH_SHORT).show();
+                musicPlayMode.setBackgroundResource(
+                        R.drawable.music_repeat_all_mode_selector);
+                Toast.makeText(AudioPlayerActivity.this,
+                        "全部循环", Toast.LENGTH_SHORT).show();
             }
             
             // 保存播放模式
@@ -727,8 +762,12 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
         ShareCompat.IntentBuilder intentBuilder = ShareCompat.IntentBuilder.from(this);
         intentBuilder.setType("text/plain");
         try {
-            intentBuilder.setText("分享" + iMusicPlayerService.getCurrentPlayAudioArtist() + "的单曲《"
-                                          + iMusicPlayerService.getCurrentPlayAudioName() + "》");
+            intentBuilder.setText(
+                    "分享"
+                            + iMusicPlayerService.getCurrentPlayAudioArtist()
+                            + "的单曲《"
+                            + iMusicPlayerService.getCurrentPlayAudioName()
+                            + "》");
         } catch (RemoteException e) {
             e.printStackTrace();
         }
@@ -811,7 +850,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
      * 处理按钮状态的同步
      */
     public class MyReceiver extends BroadcastReceiver {
-    
+        
         @Override
         public void onReceive(Context context, Intent intent) {
             // 同步bar的播放按钮

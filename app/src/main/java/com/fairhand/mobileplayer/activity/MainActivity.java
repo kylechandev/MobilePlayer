@@ -25,6 +25,7 @@ import com.fairhand.mobileplayer.R;
 import com.fairhand.mobileplayer.pager.AudioPagerFragment;
 import com.fairhand.mobileplayer.pager.NetVideoPagerFragment;
 import com.fairhand.mobileplayer.pager.VideoPagerFragment;
+import com.fairhand.mobileplayer.utils.SaveCacheUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,6 +71,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onDestroy() {
         ActivityCollector.removeActivity(this);
+        SaveCacheUtil.putCurrentPosition(MainActivity.this,
+                "POSITION_KEY", -1);// 重置当前播放位置
         super.onDestroy();
     }
     
@@ -151,6 +154,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 break;
                             case R.id.exit_app:// 退出应用
                                 ActivityCollector.finishAll();
+                                SaveCacheUtil.putCurrentPosition(MainActivity.this,
+                                        "POSITION_KEY", -1);// 重置当前播放位置
                                 int currentVersion = android.os.Build.VERSION.SDK_INT;
                                 if (currentVersion > android.os.Build.VERSION_CODES.ECLAIR_MR1) {
                                     Intent startMain = new Intent(Intent.ACTION_MAIN);
