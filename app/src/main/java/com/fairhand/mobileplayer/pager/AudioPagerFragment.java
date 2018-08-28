@@ -25,8 +25,6 @@ import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
 import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
-import android.support.v7.widget.SearchView;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -43,6 +41,7 @@ import com.bumptech.glide.Glide;
 import com.fairhand.mobileplayer.IMusicPlayerService;
 import com.fairhand.mobileplayer.R;
 import com.fairhand.mobileplayer.activity.AudioPlayerActivity;
+import com.fairhand.mobileplayer.activity.SearchActivity;
 import com.fairhand.mobileplayer.adapter.AudioPagerAdapter;
 import com.fairhand.mobileplayer.entity.MediaItem;
 import com.fairhand.mobileplayer.service.MusicPlayerService;
@@ -83,25 +82,20 @@ public class AudioPagerFragment extends Fragment {
     
     private CustomImageButton buttonJumpToSearch;
     
-//    /**
-//     * 传入audio对象序列的KEY
-//     */
-//    private static final String AUDIO_LIST = "audiolist";
-    
     /**
      * 当前点击音频位置
      */
     private static final String AUDIO_POSITION = "position";
     
     /**
-     * 上下文，用以获取到服务
-     */
-    private Context context;
-    
-    /**
      * 音乐服务代理类，可通过此代理类调用服务类的方法
      */
     private IMusicPlayerService iMusicPlayerService;
+    
+    /**
+     * 上下文，用以获取到服务
+     */
+    private Context context;
     
     private View rootView;
     
@@ -111,11 +105,6 @@ public class AudioPagerFragment extends Fragment {
      * 装数据集合
      */
     private ArrayList<MediaItem> mediaItems;
-    
-    /**
-     * 搜索
-     */
-    private SearchView searchView;
     
     /**
      * 当Activity与Fragment创建关联时调用
@@ -144,7 +133,8 @@ public class AudioPagerFragment extends Fragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull final LayoutInflater inflater,
-                             @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
         
         Log.d(TAG, "音乐播放的onCreateView被调用了");
         
@@ -153,7 +143,6 @@ public class AudioPagerFragment extends Fragment {
         }
         
         RelativeLayout musicBar = rootView.findViewById(R.id.music_bar);
-        searchView = rootView.findViewById(R.id.searchview);
         listView = rootView.findViewById(R.id.audio_list_view);
         noMedia = rootView.findViewById(R.id.no_music);
         loading = rootView.findViewById(R.id.loading);
@@ -181,6 +170,45 @@ public class AudioPagerFragment extends Fragment {
         
         return rootView;
     }
+    
+    @Override
+    public void onDestroy() {
+        
+        // 取消注册广播
+        if (mReceiver != null) {
+            context.unregisterReceiver(mReceiver);
+            mReceiver = null;
+        }
+        
+        // 解绑服务
+        if (mServiceConnection != null) {
+            context.unbindService(mServiceConnection);
+            mServiceConnection = null;
+        }
+        
+        // 移除所有消息
+        handler.removeCallbacksAndMessages(null);
+        
+        super.onDestroy();
+    }
+    
+    /**
+     * 绑定服务后的回调接口
+     */
+    private ServiceConnection mServiceConnection = new ServiceConnection() {
+        /**
+         * 连接成功
+         */
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            iMusicPlayerService = IMusicPlayerService.Stub.asInterface(service);
+        }
+        
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+        
+        }
+    };
     
     /**
      * 设置监听
@@ -233,26 +261,11 @@ public class AudioPagerFragment extends Fragment {
         
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view,
-                                    int position, long id) {
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 
-                // 获取到点击位置的音乐文件
-                MediaItem mediaItem = mediaItems.get(position);
+                MusicUtil.saveMusicInfo(position);
                 
-                // 获取到歌名 歌手 专辑图片路径
-                String name = mediaItem.getMediaName();
-                String artist = mediaItem.getMusicArtist();
-                long albumId = mediaItem.getAlbumId();
-                
-                // 保存bar信息
-                SaveCacheUtil.putMusicBarInfo(context,
-                        "MUSIC_NAME_KEY", "MUSICIAN_KEY",
-                        "POSITION_KEY", "ALBUM_KEY",
-                        name, artist, position, albumId);
-                
-                // 传递数据列表 对象 序列化
                 Intent intent = new Intent(context, AudioPlayerActivity.class);
-                
                 // 传入位置
                 intent.putExtra(AUDIO_POSITION, position);
                 
@@ -265,51 +278,13 @@ public class AudioPagerFragment extends Fragment {
             }
         });
         
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String s) {
-                return false;
-            }
-            
-            @Override
-            public boolean onQueryTextChange(String s) {
-                if (TextUtils.isEmpty(s)) {
-                    listView.clearTextFilter();  // 清除ListView的过滤
-                } else {
-                    listView.setFilterText(s); // 设置ListView的过滤关键词
-                    listView.dispatchDisplayHint(View.INVISIBLE);// 隐藏弹出的搜索关键字悬浮窗
-                }
-                return false;
-            }
-        });
-        
         buttonJumpToSearch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                
+                Intent intent = new Intent(context, SearchActivity.class);
+                startActivity(intent);
             }
         });
-    }
-    
-    @Override
-    public void onDestroy() {
-        
-        // 取消注册广播
-        if (mReceiver != null) {
-            context.unregisterReceiver(mReceiver);
-            mReceiver = null;
-        }
-        
-        // 解绑服务
-        if (mServiceConnection != null) {
-            context.unbindService(mServiceConnection);
-            mServiceConnection = null;
-        }
-        
-        // 移除所有消息
-        handler.removeCallbacksAndMessages(null);
-        
-        super.onDestroy();
     }
     
     /**
@@ -319,7 +294,8 @@ public class AudioPagerFragment extends Fragment {
         // 申请获取读取sdcard权限
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             if (ContextCompat.checkSelfPermission(context,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                        != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(Objects.requireNonNull(getActivity()),
                         new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
             } else {
@@ -338,24 +314,6 @@ public class AudioPagerFragment extends Fragment {
         filter.addAction(MusicPlayerService.SYNC_BUTTON_STATE);
         context.registerReceiver(mReceiver, filter);
     }
-    
-    /**
-     * 绑定服务后的回调接口
-     */
-    private ServiceConnection mServiceConnection = new ServiceConnection() {
-        /**
-         * 连接成功
-         */
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            iMusicPlayerService = IMusicPlayerService.Stub.asInterface(service);
-        }
-        
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-        
-        }
-    };
     
     /**
      * 消息处理
@@ -382,10 +340,10 @@ public class AudioPagerFragment extends Fragment {
     };
     
     /**
-     * 我的广播类
+     * 我的广播类<br />
+     * 接收MusicPlayerService发送的广播更新bar的信息
      *
      * @author FairHand
-     * @describe 接收MusicPlayerService发送的广播更新bar的信息
      */
     private class MyReceiver extends BroadcastReceiver {
         
@@ -393,7 +351,8 @@ public class AudioPagerFragment extends Fragment {
         @Override
         public void onReceive(Context context, Intent intent) {
             try {
-                if (Objects.requireNonNull(intent.getAction()).equals(MusicPlayerService.UPDATE_VIEW_INFO)) {
+                if (Objects.requireNonNull(intent.getAction())
+                            .equals(MusicPlayerService.UPDATE_VIEW_INFO)) {
                     // 获取到下一首歌的信息并更新bar的信息
                     String name = iMusicPlayerService.getCurrentPlayAudioName();
                     String artist = iMusicPlayerService.getCurrentPlayAudioArtist();
@@ -401,6 +360,7 @@ public class AudioPagerFragment extends Fragment {
                     barMusicName.setText(name);
                     barMusician.setText(artist);
                     setMusicImage(album);
+                    barPlayOrPauseMusic.setImageResource(R.drawable.music_bar_pause_selector);
                 } else if (intent.getAction().equals(MusicPlayerService.SYNC_BUTTON_STATE)) {
                     // 同步bar的播放按钮
                     if (iMusicPlayerService.isPlaying()) {
@@ -449,7 +409,8 @@ public class AudioPagerFragment extends Fragment {
             case 999:
                 if (resultCode == RESULT_OK) {
                     Log.d(TAG, "返回数据已收到！！！！！！！！！！！！");
-                    boolean isPlaying = data.getBooleanExtra("IS_PLAYING", false);
+                    boolean isPlaying = data.getBooleanExtra(
+                            "IS_PLAYING", false);
                     
                     if (isPlaying) {
                         barPlayOrPauseMusic.setImageResource(R.drawable.music_bar_pause_selector);
@@ -480,13 +441,15 @@ public class AudioPagerFragment extends Fragment {
                                            @NonNull int[] grantResults) {
         switch (requestCode) {
             case 1:
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (grantResults.length > 0 && grantResults[0]
+                                                       == PackageManager.PERMISSION_GRANTED) {
                     MusicUtil.getDataFromLocal();
                     mediaItems = MusicUtil.mediaItems;
                     // handler发消息
                     handler.sendEmptyMessage(0);
                 } else {
-                    Toast.makeText(context, "无法获取本地数据读取权限", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context, "无法获取本地数据读取权限",
+                            Toast.LENGTH_SHORT).show();
                     Objects.requireNonNull(getActivity()).finish();
                 }
                 break;

@@ -4,13 +4,6 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <android.support.v7.widget.SearchView
-        android:id="@+id/searchview"
-        android:layout_width="match_parent"
-        android:layout_height="52dp">
-
-    </android.support.v7.widget.SearchView>
-
     <com.fairhand.mobileplayer.widget.CustomImageButton
         android:id="@+id/button_jump_to_search"
         android:layout_width="match_parent"
@@ -18,10 +11,10 @@
         android:layout_marginLeft="8dp"
         android:layout_marginRight="8dp"
         android:background="@drawable/search_button"
-        android:drawableStart="@drawable/ic_search_blue_grey_400_24dp"
-        android:drawableTint="@android:color/white"
+        android:drawableStart="@drawable/ic_search_blue_grey_400_18dp"
+        android:drawableTint="@android:color/darker_gray"
         android:text="@string/search"
-        android:textColor="@android:color/white"
+        android:textColor="@android:color/darker_gray"
         android:textStyle="bold" />
 
     <RelativeLayout

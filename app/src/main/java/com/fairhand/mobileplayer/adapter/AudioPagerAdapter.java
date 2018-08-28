@@ -7,7 +7,6 @@ import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -27,7 +26,11 @@ import java.util.ArrayList;
  */
 public class AudioPagerAdapter extends BaseAdapter implements Filterable {
     
-    private static final String TAG = AudioPagerAdapter.class.getSimpleName();
+    /**
+     * 过滤完后数据的个数<br />
+     * 给与搜索使用
+     */
+    public static int count = 0;
     
     private ArrayList<MediaItem> mediaItems;
     
@@ -38,10 +41,19 @@ public class AudioPagerAdapter extends BaseAdapter implements Filterable {
     
     private Context context;
     
+    /**
+     * 自定义过滤器
+     */
     private MyFilter mFilter;
     
+    /**
+     * 搜索的歌名关键字
+     */
     private String searchTextName;
     
+    /**
+     * 搜索的歌手关键字
+     */
     private String searchTextArtist;
     
     /**
@@ -91,38 +103,43 @@ public class AudioPagerAdapter extends BaseAdapter implements Filterable {
         String musicName = mediaItem.getMediaName();
         String musicArtist = mediaItem.getMusicArtist();
         
-        /*高亮搜索关键字（暂时弃用）
-        if (searchTextName != null && musicName.contains(searchTextName)) {
+        // 高亮搜索关键字
+        // 当搜索歌名关键字不为空并且有歌名包含搜索关键字
+        if ((searchTextName != null) && (musicName.contains(searchTextName))) {
+            // SpannableStringBuilder 一个内容和标记都可更改的文本类 可拼接 类似StringBuilder
             SpannableStringBuilder spannableName = new SpannableStringBuilder();
             spannableName.append(musicName);
-            ForegroundColorSpan nameColorSpan = new ForegroundColorSpan(Color.parseColor("#009ad6"));
+            // 为SpannableStringBuilder设置关键字前景色
+            ForegroundColorSpan nameColorSpan
+                    = new ForegroundColorSpan(Color.parseColor("#009AD6"));
+            // 设置类型，作用开始位置，作用结束位置，前后包含
             spannableName.setSpan(nameColorSpan,
                     musicName.indexOf(searchTextName),
                     musicName.indexOf(searchTextName) + searchTextName.length(),
                     Spannable.SPAN_INCLUSIVE_INCLUSIVE);
             holder.musicName.setText(spannableName);
         } else {
-            // 设置音乐名称
+            // 没有匹配到关键字，直接设置音乐名称
             holder.musicName.setText(musicName);
         }
         
-        if (searchTextArtist != null && musicArtist.contains(searchTextArtist)) {
+        // 当搜索歌手关键字不为空并且有歌手名包含搜索关键字
+        if ((searchTextArtist != null) && (musicArtist.contains(searchTextArtist))) {
+            // SpannableString 一个内容和标记都可更改的文本类 不可拼接 类似String
             SpannableString spannableArtist = new SpannableString(musicArtist);
-            ForegroundColorSpan artistColorSpan = new ForegroundColorSpan(Color.parseColor("#009ad6"));
-             spannableArtist.setSpan(artistColorSpan,
+            // 为SpannableString设置关键字前景色
+            ForegroundColorSpan artistColorSpan
+                    = new ForegroundColorSpan(Color.parseColor("#009AD6"));
+            // 设置类型，作用开始位置，作用结束位置，前后包含
+            spannableArtist.setSpan(artistColorSpan,
                     musicArtist.indexOf(searchTextArtist),
                     musicArtist.indexOf(searchTextArtist) + searchTextArtist.length(),
                     Spannable.SPAN_INCLUSIVE_INCLUSIVE);
             holder.musicArtist.setText(spannableArtist);
         } else {
-            // 设置歌手
+            // 没有匹配到关键字，直接设置歌手
             holder.musicArtist.setText(musicArtist);
-        }*/
-    
-        // 设置音乐名称
-        holder.musicName.setText(musicName);
-        // 设置歌手
-        holder.musicArtist.setText(musicArtist);
+        }
         
         return convertView;
     }
@@ -172,6 +189,8 @@ public class AudioPagerAdapter extends BaseAdapter implements Filterable {
             // 最后将过滤完数据的大小保存到FilterResults的count变量中
             results.count = filterMediaItems.size();
             
+            count = results.count;
+            
             return results;
         }
         
@@ -182,9 +201,9 @@ public class AudioPagerAdapter extends BaseAdapter implements Filterable {
         protected void publishResults(CharSequence constraint, FilterResults results) {
             // noinspection unchecked
             mediaItems = (ArrayList<MediaItem>) results.values;// 设置过滤过的数据
-            MusicUtil.mediaItems = mediaItems;// 更新播放列表
             if (results.count > 0) {
                 notifyDataSetChanged();// 通知数据发生改变
+                MusicUtil.mediaItems = mediaItems;// 更新播放列表
             } else {
                 notifyDataSetInvalidated();// 通知数据失效
             }

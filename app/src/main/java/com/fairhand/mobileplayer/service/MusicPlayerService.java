@@ -435,7 +435,6 @@ public class MusicPlayerService extends Service {
      * 获取到当前播放的音频的名字
      */
     private String getCurrentPlayAudioName() {
-        // 去除得到的音频名中的歌手名以及文件的后缀名
         return mediaItem.getMediaName();
     }
     
