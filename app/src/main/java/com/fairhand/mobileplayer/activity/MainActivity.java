@@ -59,6 +59,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ActivityCollector.addActivity(this);
+        // 重置播放位置
+        SaveCacheUtil.putCurrentPosition(this, "POSITION_KEY", -1);
         
         initViews();
         
@@ -71,8 +73,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onDestroy() {
         ActivityCollector.removeActivity(this);
-        SaveCacheUtil.putCurrentPosition(MainActivity.this,
-                "POSITION_KEY", -1);// 重置当前播放位置
         super.onDestroy();
     }
     
@@ -154,8 +154,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 break;
                             case R.id.exit_app:// 退出应用
                                 ActivityCollector.finishAll();
-                                SaveCacheUtil.putCurrentPosition(MainActivity.this,
-                                        "POSITION_KEY", -1);// 重置当前播放位置
                                 int currentVersion = android.os.Build.VERSION.SDK_INT;
                                 if (currentVersion > android.os.Build.VERSION_CODES.ECLAIR_MR1) {
                                     Intent startMain = new Intent(Intent.ACTION_MAIN);
@@ -164,7 +162,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                     startActivity(startMain);
                                     System.exit(0);
                                 } else {// android2.1
-                                    ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+                                    ActivityManager am =
+                                            (ActivityManager) getSystemService(ACTIVITY_SERVICE);
                                     assert am != null;
                                     am.restartPackage(getPackageName());
                                 }

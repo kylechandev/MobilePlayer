@@ -84,6 +84,16 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
     private static final int CHECK_PLAY_MODE = 5;
     
     /**
+     * 上一首点击通知bar更新ui广播action
+     */
+    public static final String SYNC_PRE = "SYNC_PRE_ACTION";
+    
+    /**
+     * 下一首点击通知bar更新ui广播action
+     */
+    public static final String SYNC_NEXT = "SYNC_NEXT_ACTION";
+    
+    /**
      * 声音管理器（调节声音）
      */
     private AudioManager mAudioManager;
@@ -134,11 +144,6 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
      * 判断是否按过上一首或下一首
      */
     private boolean isPressPreOrNext = false;
-    
-    /**
-     * 当前正在播放的音乐位置
-     */
-    private int currentPlayingMusicPosition = -1;
     
     /**
      * 布局组件
@@ -209,7 +214,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
             unbindService(mServiceConnection);
             mServiceConnection = null;
         }
-        
+    
         super.onDestroy();
     }
     
@@ -261,66 +266,37 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.music_play_mode:
-                setPlayMode();// 设置播放模式
+            case R.id.music_play_mode:// 设置播放模式
+                setPlayMode();
                 break;
-            case R.id.previous_music:
-                if (iMusicPlayerService != null) {
-                    try {
-                        // 上一曲
-                        isPressPreOrNext = true;
-                        iMusicPlayerService.playPreviousAudio();
-                        pauseOrPlayMusic.setBackgroundResource(R.drawable.music_pause_selector);
-                        backData(true);
-                        // 重新播放动画
-                        objectAnimator.cancel();
-                        setMusicImage();
-                        objectAnimator.start();
-                    } catch (RemoteException e) {
-                        e.printStackTrace();
-                    }
-                }
+            case R.id.previous_music:// 上一首
+                handlePreOrNextMusic(false);
                 break;
-            case R.id.pause_or_play_music:
-                pauseOrPlayMusic(false);// 处理暂停或是播放音乐
+            case R.id.pause_or_play_music:// 暂停or播放音乐
+                handlePauseOrPlayMusic(false);
                 try {
                     isPlaying = iMusicPlayerService.isPlaying();
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
-                backData(isPlaying);
                 break;
-            case R.id.next_music:
-                if (iMusicPlayerService != null) {
-                    try {
-                        // 下一曲
-                        isPressPreOrNext = true;
-                        iMusicPlayerService.playNextAudio();
-                        pauseOrPlayMusic.setBackgroundResource(R.drawable.music_pause_selector);
-                        backData(true);
-                        // 重新播放动画
-                        objectAnimator.cancel();
-                        setMusicImage();
-                        objectAnimator.start();
-                    } catch (RemoteException e) {
-                        e.printStackTrace();
-                    }
-                }
+            case R.id.next_music:// 下一首
+                handlePreOrNextMusic(true);
                 break;
-            case R.id.music_menu:
+            case R.id.music_menu:// 播放列表
                 break;
-            case R.id.music_share_button:
-                shareMusic();// 分享歌曲
+            case R.id.music_share_button:// 分享
+                shareMusic();
                 break;
-            case R.id.music_face_back_button:
+            case R.id.music_face_back_button:// 返回按钮
                 try {
                     backData(iMusicPlayerService.isPlaying());
                 } catch (RemoteException e) {
                     e.printStackTrace();
                 }
-                finish();// 点击返回到上一个活动
+                finish();
                 break;
-            case R.id.music_info_and_lyric:
+            case R.id.music_info_and_lyric:// 歌词（假的）
                 if (customLyricView.getVisibility() == View.GONE) {
                     // 显示歌词，隐藏音乐转盘，显示音量控制
                     customLyricView.setVisibility(View.VISIBLE);
@@ -333,6 +309,43 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
                     musicVolumnCotroller.setVisibility(View.GONE);
                 }
                 break;
+            default:
+                break;
+        }
+    }
+    
+    /**
+     * 处理上一首或下一首
+     *
+     * @param isNext 上一首or下一首
+     */
+    private void handlePreOrNextMusic(boolean isNext) {
+        try {
+            Intent syncPreOrNextIntent = new Intent();
+            // 标记按过上一首or下一首
+            isPressPreOrNext = true;
+            if (isNext) {
+                iMusicPlayerService.playNextAudio();
+                syncPreOrNextIntent.setAction(SYNC_NEXT);
+            } else {
+                iMusicPlayerService.playPreviousAudio();
+                syncPreOrNextIntent.setAction(SYNC_PRE);
+            }
+            syncPreOrNextIntent.putExtra("POSITION_FOR_SEARCH_VALUES",
+                    MusicPlayerService.currentPosition);
+            sendBroadcast(syncPreOrNextIntent);
+            
+            pauseOrPlayMusic.setBackgroundResource(R.drawable.music_pause_selector);
+            // 重新播放动画
+            objectAnimator.cancel();
+            setMusicImage();
+            objectAnimator.start();
+            // 保存位置
+            SaveCacheUtil.putCurrentPosition(this,
+                    "POSITION_KEY", MusicPlayerService.currentPosition);
+            
+        } catch (RemoteException e) {
+            e.printStackTrace();
         }
     }
     
@@ -368,7 +381,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
                 "FROM_NOTIFICATION", false);
         
         // 若不是从bar或通知进入的，获取点击列表位置
-        if (!isFromBar || !isFromNotification) {
+        if (!isFromBar && !isFromNotification) {
             position = getIntent().getIntExtra(AUDIO_POSITION, 0);
         }
         
@@ -402,19 +415,20 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
                     if (!isFromNotification && !isFromBar) {
                         // 从列表进入
                         // 获取到位置，若还是上一次的播放位置，则继续播放，否则切歌
-                        currentPlayingMusicPosition =
-                                SaveCacheUtil.getCurrentPosition(
-                                        AudioPlayerActivity.this,
-                                        "POSITION_KEY");
+                        // 当前正在播放的音乐位置
+                        int currentPlayingMusicPosition = SaveCacheUtil.getCurrentPosition(
+                                AudioPlayerActivity.this, "POSITION_KEY");
+                        
+                        Log.d(TAG, "为什么？？？" + currentPlayingMusicPosition);
+                        
                         if (currentPlayingMusicPosition != position) {
                             iMusicPlayerService.openAudio(position);
                         } else {
                             showViewData();
                             checkPlayMode();
-                            pauseOrPlayMusic(true);
+                            handlePauseOrPlayMusic(true);
                         }
                         currentPlayingMusicPosition = position;// 更新当前播放位置
-                        Log.d(TAG, "当前播放的音乐处于的位置:" + currentPlayingMusicPosition);
                         // 保存当前播放位置
                         SaveCacheUtil.putCurrentPosition(
                                 AudioPlayerActivity.this, "POSITION_KEY",
@@ -423,7 +437,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
                         // 从通知栏或bar进入
                         showViewData();
                         checkPlayMode();
-                        pauseOrPlayMusic(true);
+                        handlePauseOrPlayMusic(true);
                     }
                 } catch (RemoteException e) {
                     e.printStackTrace();
@@ -535,7 +549,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
                         // 时间进度更新
                         currentTime.setText(TimeConvertUtil.stringForTime(currentPosition));
                         
-                        // 每10ms更新一次（这样你能拖多快，我就能更新多快）
+                        // 每10ms更新一次（这样你能拖多快，我就能更新多快哈哈）
                         handler.removeMessages(PROGRESS);
                         handler.sendEmptyMessageDelayed(PROGRESS, 10);
                         
@@ -596,7 +610,6 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
                         
                         if (!isPressPreOrNext) {
                             setMusicImage();
-                            Log.d(TAG, "我行你为什么不行？？？？");
                         }
                         
                         // 发送消息通知SeekBar更新播放进度
@@ -660,7 +673,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
      * @param isFromOther 标识是否来自状态栏或bar
      */
     @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-    private void pauseOrPlayMusic(boolean isFromOther) {
+    private void handlePauseOrPlayMusic(boolean isFromOther) {
         if (iMusicPlayerService != null) {
             try {
                 if (iMusicPlayerService.isPlaying()) {
@@ -814,22 +827,21 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
      */
     private void backData(boolean isPlaying) {
         Log.d(TAG, "准备返回数据啦啦啦啦啦啦");
-        Intent returnData = new Intent();
-        returnData.putExtra("IS_PLAYING", isPlaying);
-        // returnData.putExtra("IS_PRESS_PRE_OR_NEXT", isPressPreOrNext);
+        Intent backDataIntent = new Intent();
+        backDataIntent.putExtra("IS_PLAYING", isPlaying);
         
         try {
             String name = iMusicPlayerService.getCurrentPlayAudioName();
             String artist = iMusicPlayerService.getCurrentPlayAudioArtist();
             String albumArt = MusicUtil.getAlbumArt(iMusicPlayerService.getAlbumId());
-            returnData.putExtra("MUSIC_NAME", name);
-            returnData.putExtra("MUSIC_ARTIST", artist);
-            returnData.putExtra("ALBUM_ART", albumArt);
+            backDataIntent.putExtra("MUSIC_NAME", name);
+            backDataIntent.putExtra("MUSIC_ARTIST", artist);
+            backDataIntent.putExtra("ALBUM_ART", albumArt);
         } catch (RemoteException e) {
             e.printStackTrace();
         }
         
-        setResult(RESULT_OK, returnData);
+        setResult(RESULT_OK, backDataIntent);
     }
     
     /**

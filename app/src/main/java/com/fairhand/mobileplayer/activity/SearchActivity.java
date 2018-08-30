@@ -25,7 +25,7 @@ import com.fairhand.mobileplayer.utils.SaveCacheUtil;
 
 /**
  * 音乐搜索类<br />
- * Create by FairHand on 2018/8/27.
+ * Created by FairHand on 2018/8/27.
  *
  * @author FairHand
  */
@@ -33,8 +33,24 @@ public class SearchActivity extends AppCompatActivity {
     
     private static final String TAG = SearchActivity.class.getSimpleName();
     
+    /**
+     * 发送同步bar广播
+     */
+    public static final String SYNC_BAR_INFO = "SYNC_BAR_INFO_ACTION";
+    
+    /**
+     * 通过搜索点击的音乐位置
+     */
+    public static final String POSITION_FOR_SEARCH = "POSITION_FOR_SEARCH_VALUES";
+    
+    /**
+     * 搜索到的item
+     */
     private ListView searchListView;
     
+    /**
+     * 提示性文本
+     */
     private TextView notFindMusic;
     
     @Override
@@ -115,8 +131,6 @@ public class SearchActivity extends AppCompatActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 
-                MusicUtil.saveMusicInfo(position);
-                
                 Intent intent = new Intent(SearchActivity.this,
                         AudioPlayerActivity.class);
                 
@@ -124,6 +138,15 @@ public class SearchActivity extends AppCompatActivity {
                 intent.putExtra(AUDIO_POSITION, position);
                 
                 startActivity(intent);
+                
+                // 暂且先重置位置（日后处理）
+                SaveCacheUtil.putCurrentPosition(SearchActivity.this,
+                        "POSITION_KEY", -1);
+                
+                // 发送广播同步Bar音乐信息
+                Intent syncIntent = new Intent(SYNC_BAR_INFO);
+                syncIntent.putExtra(POSITION_FOR_SEARCH, position);
+                sendBroadcast(syncIntent);
             }
         });
     }
@@ -152,7 +175,6 @@ public class SearchActivity extends AppCompatActivity {
             @Override
             public boolean onQueryTextChange(String s) {
                 if (TextUtils.isEmpty(s)) {
-                    Log.d(TAG, "空了！！！！！！！！！");
                     searchListView.clearTextFilter();  // 清除ListView的过滤
                     notFindMusic.setVisibility(View.GONE);// 隐藏提示文本
                     searchListView.setVisibility(View.INVISIBLE);// 隐藏搜索列表
@@ -182,7 +204,7 @@ public class SearchActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case android.R.id.home:// 返回
-                MusicUtil.getDataFromLocal();// 还原数据
+                MusicUtil.getDataFromLocal();
                 finish();
                 break;
             default:
@@ -193,7 +215,7 @@ public class SearchActivity extends AppCompatActivity {
     
     @Override
     public void onBackPressed() {
-        MusicUtil.getDataFromLocal();// 还原数据
+        MusicUtil.getDataFromLocal();
         super.onBackPressed();
     }
 }

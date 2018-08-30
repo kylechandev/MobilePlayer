@@ -20,8 +20,8 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
         android:layout_marginTop="6dp"
+        android:layout_weight="1"
         android:background="@android:color/white">
 
         <android.support.v7.widget.Toolbar
@@ -63,6 +63,7 @@
     <!--底部音乐信息-->
     <include
         android:id="@+id/music_bar"
-        layout="@layout/buttom_music_bar_layout" />
+        layout="@layout/buttom_music_bar_layout"
+        android:visibility="gone" />
 
 </LinearLayout>

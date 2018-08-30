@@ -170,10 +170,12 @@ public class NetVideoPagerFragment extends Fragment {
         RequestParams params = new RequestParams(FindNetVideoUtil.NET_URL);
         x.http().get(params, new Callback.CommonCallback<String>() {
             
+            /**
+             * 联网成功
+             */
             @Override
             public void onSuccess(String result) {
                 publicResult = result;
-                Log.d(TAG, "联网成功==" + publicResult);
     
                 /*SharedPreferences.Editor editor =
                         getContext().getSharedPreferences("video", Context.MODE_PRIVATE).edit();
@@ -185,9 +187,11 @@ public class NetVideoPagerFragment extends Fragment {
                 processData(publicResult);// 处理数据
             }
             
+            /**
+             * 联网失败
+             */
             @Override
             public void onError(Throwable ex, boolean isOnCallback) {
-                Log.d(TAG, "联网失败==" + ex.getMessage());
                 // 出错显示提示文本
                 noNet.setVisibility(View.VISIBLE);
                 // 隐藏ProgressBar
@@ -198,12 +202,10 @@ public class NetVideoPagerFragment extends Fragment {
             
             @Override
             public void onCancelled(CancelledException cex) {
-                Log.d(TAG, "onCancelled==" + cex.getMessage());
             }
             
             @Override
             public void onFinished() {
-                Log.d(TAG, "onFinished");
             }
         });
     }
@@ -213,25 +215,23 @@ public class NetVideoPagerFragment extends Fragment {
      */
     private void processData(String jsonData) {
         
-            mediaItems = parseJson(jsonData);
-            // 设置适配器
-            if ((mediaItems != null) && (mediaItems.size() > 0)) {
-                // 有数据设置适配器
-                netVideoPagerAdapter = new NetVideoPagerAdapter(getContext(), mediaItems);
-                Log.d(TAG, "适配器：" + netVideoPagerAdapter);
-                Log.d(TAG, "看看这个是：" + mXListView);
-                if (mXListView != null) {
-                    mXListView.setAdapter(netVideoPagerAdapter);
-                }
-                onLoad();
-                // 隐藏提示文本
-                noNet.setVisibility(View.GONE);
-            } else {
-                // 没有数据显示提示文本
-                noNet.setVisibility(View.VISIBLE);
+        mediaItems = parseJson(jsonData);
+        // 设置适配器
+        if ((mediaItems != null) && (mediaItems.size() > 0)) {
+            // 有数据设置适配器
+            netVideoPagerAdapter = new NetVideoPagerAdapter(getContext(), mediaItems);
+            if (mXListView != null) {
+                mXListView.setAdapter(netVideoPagerAdapter);
             }
-            // 隐藏ProgressBar
-            loading.setVisibility(View.GONE);
+            onLoad();
+            // 隐藏提示文本
+            noNet.setVisibility(View.GONE);
+        } else {
+            // 没有数据显示提示文本
+            noNet.setVisibility(View.VISIBLE);
+        }
+        // 隐藏ProgressBar
+        loading.setVisibility(View.GONE);
         
     }
     

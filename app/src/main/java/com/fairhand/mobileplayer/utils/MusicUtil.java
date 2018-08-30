@@ -12,7 +12,7 @@ import java.util.ArrayList;
 
 /**
  * 音乐工具类<br />
- * Create by FairHand on 2018/8/26.
+ * Created by FairHand on 2018/8/26.
  *
  * @author FairHand
  */
@@ -67,9 +67,10 @@ public class MusicUtil {
                         MediaStore.Audio.Media.DATA,// 音乐的绝对地址
                         MediaStore.Audio.Media.ARTIST,// 歌手
                         MediaStore.Audio.Media.ALBUM_ID,// 专辑图片ID
-                        MediaStore.Audio.Media.ALBUM// 专辑名
+                        MediaStore.Audio.Media.ALBUM,// 专辑名
                 };
-                Cursor cursor = resolver.query(uri, objs, null, null, null);
+                Cursor cursor = resolver.query(uri, objs, null, null,
+                        null);
                 if (cursor != null) {
                     while (cursor.moveToNext()) {
                         
@@ -104,25 +105,6 @@ public class MusicUtil {
             }
         }.start();
         
-    }
-    
-    /**
-     * 保存音乐信息
-     */
-    public static void saveMusicInfo(int position) {
-        // 获取到点击位置的音乐文件
-        MediaItem mediaItem = mediaItems.get(position);
-        
-        // 获取到歌名 歌手 专辑图片路径
-        String name = mediaItem.getMediaName();
-        String artist = mediaItem.getMusicArtist();
-        long albumId = mediaItem.getAlbumId();
-        
-        // 保存bar信息
-        SaveCacheUtil.putMusicBarInfo(MyApplication.getContext(),
-                "MUSIC_NAME_KEY", "MUSICIAN_KEY",
-                "POSITION_KEY", "ALBUM_KEY",
-                name, artist, position, albumId);
     }
     
 }

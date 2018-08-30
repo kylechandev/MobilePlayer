@@ -12,6 +12,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Handler;
@@ -19,6 +20,8 @@ import android.os.IBinder;
 import android.os.Message;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
+import android.telephony.PhoneStateListener;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.widget.RemoteViews;
 import android.widget.Toast;
@@ -59,17 +62,27 @@ public class MusicPlayerService extends Service {
     /**
      * 广播发送 ACTION 通知的播放按钮点击
      */
-    public static String STATUS_BAR_PLAY_CLICK_ACTION = "status_bar_cover_click_action";
+    public static String STATUS_BAR_PLAY_CLICK_ACTION = "STATUS_BAR_COVER_CLICK_ACTION";
     
     /**
      * 广播发送 ACTION 通知的下一首按钮点击
      */
-    public static String STATUS_BAR_NEXT_CLICK_ACTION = "status_bar_play_click_action";
+    public static String STATUS_BAR_NEXT_CLICK_ACTION = "STATUS_BAR_PLAY_CLICK_ACTION";
     
     /**
      * 广播发送 ACTION 通知的上一首按钮点击
      */
-    public static String STATUS_BAR_PRE_CLICK_ACTION = "status_bar_pre_click_action";
+    public static String STATUS_BAR_PRE_CLICK_ACTION = "STATUS_BAR_PRE_CLICK_ACTION";
+    
+    /**
+     * 广播发送 传递值KEY 通知的切歌
+     */
+    public static String STATUS_BAR_CHANGED_KEY = "STATUS_BAR_PRE_CLICK_KEY";
+    
+    /**
+     * 广播发送 传递值KEY 是否仅仅同步按钮状态
+     */
+    public static String IS_ONLY_SYNC_BUTTON_KEY = "IS_ONLY_SYNC_BUTTON_KEY";
     
     /**
      * 更新通知信息MessageWhat
@@ -84,7 +97,7 @@ public class MusicPlayerService extends Service {
     /**
      * 列表中点击音频的位置
      */
-    private int position;
+    public static int currentPosition;
     
     /**
      * 当前播放的音频文件对象
@@ -137,6 +150,40 @@ public class MusicPlayerService extends Service {
      */
     private int PLAY_MODE = REPEAT_ALL;
     
+    /**
+     * 重新播放
+     */
+    private boolean mResumeAfterCall = false;
+    
+    /**
+     * 监听打电话自动暂停播放，打完继续播放
+     */
+    private PhoneStateListener mPhoneStateListener = new PhoneStateListener() {
+        @Override
+        public void onCallStateChanged(int state, String incomingNumber) {
+            if (state == TelephonyManager.CALL_STATE_RINGING) {
+                AudioManager audioManager =
+                        (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+                assert audioManager != null;
+                int ringVolume =
+                        audioManager.getStreamVolume(AudioManager.STREAM_RING);
+                if (ringVolume > 0) {
+                    mResumeAfterCall = (isPlaying() || mResumeAfterCall);
+                    pausePlayMusic();
+                }
+            } else if (state == TelephonyManager.CALL_STATE_OFFHOOK) {
+                mResumeAfterCall = (isPlaying() || mResumeAfterCall);
+                pausePlayMusic();
+            } else if (state == TelephonyManager.CALL_STATE_IDLE) {
+                if (mResumeAfterCall) {
+                    startPlayMusic();
+                    mResumeAfterCall = false;
+                }
+            }
+        }
+    };
+    
+    
     @Override
     public void onCreate() {
         super.onCreate();
@@ -147,6 +194,12 @@ public class MusicPlayerService extends Service {
         PLAY_MODE = SaveCacheUtil.getPlayMode(this, "PLAY_MODE");
         
         initData();
+        
+        // 电话服务
+        TelephonyManager manager =
+                (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        assert manager != null;
+        manager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_CALL_STATE);
         
     }
     
@@ -188,6 +241,12 @@ public class MusicPlayerService extends Service {
             mReceiver = null;
         }
         
+        // 电话服务
+        TelephonyManager manager =
+                (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+        assert manager != null;
+        manager.listen(mPhoneStateListener, 0);
+    
         super.onDestroy();
     }
     
@@ -200,8 +259,6 @@ public class MusicPlayerService extends Service {
         Log.d(TAG, "服务onStartCommand");
         
         mediaItems = MusicUtil.mediaItems;
-        
-        Log.d(TAG, "看看你是不是空？" + mediaItems.size());
         
         return Service.START_STICKY;
     }
@@ -295,7 +352,7 @@ public class MusicPlayerService extends Service {
         public boolean isCompletion() {
             return service.isCompletion();
         }
-    
+        
         @Override
         public String getPlayAudioNameForPosition(int position) {
             return service.getPlayAudioNameForPosition(position);
@@ -312,7 +369,7 @@ public class MusicPlayerService extends Service {
      * 根据位置打开相应的音频文件
      */
     private void openAudio(int position) {
-        this.position = position;
+        currentPosition = position;
         if ((mediaItems != null) && (mediaItems.size() > 0)) {
             
             if ((position >= 0) && (position < mediaItems.size())) {
@@ -395,6 +452,7 @@ public class MusicPlayerService extends Service {
      */
     private void notifyPlayCompletion(String action) {
         Intent intent = new Intent(action);
+        SaveCacheUtil.putCurrentPosition(this, "POSITION_KEY", currentPosition);
         sendBroadcast(intent);
     }
     
@@ -470,21 +528,22 @@ public class MusicPlayerService extends Service {
      */
     private void playPreviousAudio() {
         if (PLAY_MODE == MusicPlayerService.REPEAT_ALL) {
-            position--;
+            currentPosition--;
         } else if (PLAY_MODE == MusicPlayerService.REPEAT_SINGLE) {
-            position--;
+            currentPosition--;
         } else if (PLAY_MODE == MusicPlayerService.REPEAT_RAND) {
-            position = new Random().nextInt(mediaItems.size());
+            currentPosition = new Random().nextInt(mediaItems.size());
         }
         
         // 若获取的位置小于0，将position置为列表最后一个
-        if (position < 0) {
-            position = mediaItems.size() - 1;
-        } else if (position >= mediaItems.size()) {
-            // 在处于最后一个位置时点了很多次下一首后，点击上一首后直接设置position为mediaItems.size() - 2
-            position = mediaItems.size() - 2;
+        if (currentPosition < 0) {
+            currentPosition = mediaItems.size() - 1;
+        } else if (currentPosition >= mediaItems.size()) {
+            // 在处于最后一个位置时点了很多次下一首后,
+            // 点击上一首后直接设置position为mediaItems.size() - 2
+            currentPosition = mediaItems.size() - 2;
         }
-        openAudio(position);
+        openAudio(currentPosition);
         updatedNotification();
     }
     
@@ -493,21 +552,21 @@ public class MusicPlayerService extends Service {
      */
     private void playNextAudio() {
         if (PLAY_MODE == MusicPlayerService.REPEAT_ALL) {
-            position++;
+            currentPosition++;
         } else if (PLAY_MODE == MusicPlayerService.REPEAT_SINGLE) {
-            position++;
+            currentPosition++;
         } else if (PLAY_MODE == MusicPlayerService.REPEAT_RAND) {
-            position = new Random().nextInt(mediaItems.size());
+            currentPosition = new Random().nextInt(mediaItems.size());
         }
         
         // 若获取的位置大于或等于列表大小，将position置为0
-        if (position >= mediaItems.size()) {
-            position = 0;
-        } else if (position < 0) {
+        if (currentPosition >= mediaItems.size()) {
+            currentPosition = 0;
+        } else if (currentPosition < 0) {
             // 在处于第一个位置时点了很多次上一首后，点击下一首后直接设置position为1
-            position = 1;
+            currentPosition = 1;
         }
-        openAudio(position);
+        openAudio(currentPosition);
         updatedNotification();
     }
     
@@ -553,7 +612,7 @@ public class MusicPlayerService extends Service {
      * 获取到ALBUM_ID
      */
     private long getAlbumId() {
-        return mediaItems.get(position).getAlbumId();
+        return mediaItem.getAlbumId();
     }
     
     /**
@@ -675,30 +734,36 @@ public class MusicPlayerService extends Service {
             
             String action = intent.getAction();
             assert action != null;
-            // 处理通知的播放按钮点击事件
             if (action.equals(STATUS_BAR_PLAY_CLICK_ACTION)) {
+                // 处理通知的播放按钮点击事件
                 if (isPlaying()) {
                     pausePlayMusic();
                 } else {
                     startPlayMusic();
                 }
-                // 处理通知的上一首按钮点击事件
+                notifySyncButtonStateAndBarInfo(SYNC_BUTTON_STATE, true);
             } else if (action.equals(STATUS_BAR_PRE_CLICK_ACTION)) {
+                // 处理通知的上一首按钮点击事件
                 playPreviousAudio();
-                // 处理通知的下一首按钮点击事件
+                notifySyncButtonStateAndBarInfo(SYNC_BUTTON_STATE, false);
             } else if (action.equals(STATUS_BAR_NEXT_CLICK_ACTION)) {
+                // 处理通知的下一首按钮点击事件
                 playNextAudio();
+                notifySyncButtonStateAndBarInfo(SYNC_BUTTON_STATE, false);
             }
             updatedNotification();
-            notifySyncButtonState(SYNC_BUTTON_STATE);
+            
         }
     }
     
     /**
-     * 通知同步按钮状态
+     * 通知同步按钮状态并更新bar的信息
+     * @param what 是否仅仅同步按钮状态
      */
-    private void notifySyncButtonState(String action) {
+    private void notifySyncButtonStateAndBarInfo(String action, boolean what) {
         Intent syncInent = new Intent(action);
+        syncInent.putExtra(STATUS_BAR_CHANGED_KEY, currentPosition);
+        syncInent.putExtra(IS_ONLY_SYNC_BUTTON_KEY, what);
         sendBroadcast(syncInent);
     }
     
@@ -714,16 +779,16 @@ public class MusicPlayerService extends Service {
                                 R.id.music_play, R.drawable.ic_play_btn_pause);
                         bigView.setImageViewResource(
                                 R.id.play, R.drawable.ic_play_btn_pause);
-                        Log.d(TAG, "设置按钮为暂停");
                     } else {
                         normalView.setImageViewResource(
                                 R.id.music_play, R.drawable.ic_play_btn_play);
                         bigView.setImageViewResource(
                                 R.id.play, R.drawable.ic_play_btn_play);
-                        Log.d(TAG, "设置按钮为播放");
                     }
                     
                     manager.notify(1, notification.build());
+                    SaveCacheUtil.putCurrentPosition(MusicPlayerService.this,
+                            "POSITION_KEY", currentPosition);
                     break;
                 
                 default:

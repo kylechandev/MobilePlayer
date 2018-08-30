@@ -3,8 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fitsSystemWindows="true"
-    android:background="#5F9EA0">
+    android:background="#5F9EA0"
+    android:fitsSystemWindows="true">
 
     <LinearLayout
         android:id="@+id/top_controller"
@@ -22,10 +22,11 @@
 
             <ImageView
                 android:id="@+id/music_face_back_button"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center_vertical"
                 android:contentDescription="@string/back"
-                android:src="@drawable/ic_arrow_back_white_24dp" />
+                android:src="@drawable/ic_arrow_back_white" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -66,10 +67,10 @@
 
             <ImageView
                 android:id="@+id/music_share_button"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
                 android:contentDescription="@string/share"
-                android:src="@drawable/ic_share_white_24dp" />
+                android:src="@drawable/ic_share_white" />
 
         </LinearLayout>
 
@@ -77,12 +78,11 @@
             android:id="@+id/music_volumn_cotroller"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            >
+            android:gravity="center_vertical">
 
             <Button
-                android:layout_width="26dp"
-                android:layout_height="26dp"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
                 android:layout_marginLeft="20dp"
                 android:layout_marginStart="20dp"
                 android:background="@drawable/ic_volume_up_blue_grey_200_24dp" />
@@ -182,8 +182,8 @@
 
             <Button
                 android:id="@+id/music_play_mode"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
                 android:layout_centerVertical="true"
                 android:layout_marginLeft="6dp"
                 android:layout_marginStart="6dp"
@@ -191,8 +191,8 @@
 
             <Button
                 android:id="@+id/previous_music"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
                 android:layout_centerVertical="true"
                 android:layout_marginEnd="24dp"
                 android:layout_marginRight="24dp"
@@ -209,8 +209,8 @@
 
             <Button
                 android:id="@+id/next_music"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
                 android:layout_centerVertical="true"
                 android:layout_marginLeft="24dp"
                 android:layout_marginStart="24dp"
@@ -220,8 +220,8 @@
 
             <Button
                 android:id="@+id/music_menu"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
                 android:layout_alignParentEnd="true"
                 android:layout_alignParentRight="true"
                 android:layout_centerVertical="true"

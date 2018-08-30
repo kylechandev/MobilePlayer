@@ -7,6 +7,7 @@ import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -18,6 +19,7 @@ import android.widget.TextView;
 import com.fairhand.mobileplayer.R;
 import com.fairhand.mobileplayer.entity.MediaItem;
 import com.fairhand.mobileplayer.utils.MusicUtil;
+import com.fairhand.mobileplayer.utils.SaveCacheUtil;
 
 import java.util.ArrayList;
 
@@ -80,20 +82,34 @@ public class AudioPagerAdapter extends BaseAdapter implements Filterable {
         return position;
     }
     
+    private static final String TAG = AudioPagerAdapter.class.getSimpleName();
+    
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
+        
+        // 获取到保存的点击位置
+        int clickPosition = SaveCacheUtil.getCurrentPosition(context, "POSITION_KEY");
+        
         ViewHolder holder;
         if (convertView == null) {
             convertView = View.inflate(context, R.layout.item_music_pager, null);
             holder = new ViewHolder();
             holder.musicName = convertView.findViewById(R.id.music_name);
             holder.musicArtist = convertView.findViewById(R.id.musician);
-            holder.currentPlayingMusicImage = convertView.findViewById(R.id.current_playing_music_image);
+            holder.currentPlayingMusicImage =
+                    convertView.findViewById(R.id.current_playing_music_image);
             
             // 与ViewHolder关联
             convertView.setTag(holder);
         } else {
             holder = (ViewHolder) convertView.getTag();
+        }
+        
+        // 为点击的位置的item设置
+        if (clickPosition == position) {
+            holder.currentPlayingMusicImage.setVisibility(View.VISIBLE);
+        } else {
+            holder.currentPlayingMusicImage.setVisibility(View.GONE);
         }
         
         // 根据position得到列表中对应位置的数据

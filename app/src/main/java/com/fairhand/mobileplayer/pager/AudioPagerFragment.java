@@ -46,11 +46,9 @@ import com.fairhand.mobileplayer.adapter.AudioPagerAdapter;
 import com.fairhand.mobileplayer.entity.MediaItem;
 import com.fairhand.mobileplayer.service.MusicPlayerService;
 import com.fairhand.mobileplayer.utils.MusicUtil;
-import com.fairhand.mobileplayer.utils.SaveCacheUtil;
 import com.fairhand.mobileplayer.widget.CustomImageButton;
 
 
-import java.util.ArrayList;
 import java.util.Objects;
 
 import static android.app.Activity.RESULT_OK;
@@ -82,6 +80,10 @@ public class AudioPagerFragment extends Fragment {
     
     private CustomImageButton buttonJumpToSearch;
     
+    private RelativeLayout musicBar;
+    
+    private AudioPagerAdapter audioPagerAdapter;
+    
     /**
      * 当前点击音频位置
      */
@@ -100,11 +102,6 @@ public class AudioPagerFragment extends Fragment {
     private View rootView;
     
     private BroadcastReceiver mReceiver;
-    
-    /**
-     * 装数据集合
-     */
-    private ArrayList<MediaItem> mediaItems;
     
     /**
      * 当Activity与Fragment创建关联时调用
@@ -142,7 +139,7 @@ public class AudioPagerFragment extends Fragment {
             rootView = inflater.inflate(R.layout.audio_fragment, container, false);
         }
         
-        RelativeLayout musicBar = rootView.findViewById(R.id.music_bar);
+        musicBar = rootView.findViewById(R.id.music_bar);
         listView = rootView.findViewById(R.id.audio_list_view);
         noMedia = rootView.findViewById(R.id.no_music);
         loading = rootView.findViewById(R.id.loading);
@@ -154,17 +151,6 @@ public class AudioPagerFragment extends Fragment {
         buttonJumpToSearch = rootView.findViewById(R.id.button_jump_to_search);
         
         listView.setTextFilterEnabled(true);// 开启ListView的过滤功能
-        
-        // 获取保存的bar信息
-        String name = SaveCacheUtil.getMusicBarMusicName(context, "MUSIC_NAME_KEY");
-        String artist = SaveCacheUtil.getMusicBarMusicArtist(context, "MUSICIAN_KEY");
-        long albumId = SaveCacheUtil.getMusicBarMusicAlbum(context, "ALBUM_KEY");
-        
-        if ((name != null) || (artist != null) || (albumId != 0)) {
-            barMusicName.setText(name);
-            barMusician.setText(artist);
-            setMusicImage(MusicUtil.getAlbumArt(albumId));
-        }
         
         setOnListener(musicBar);
         
@@ -213,7 +199,7 @@ public class AudioPagerFragment extends Fragment {
     /**
      * 设置监听
      */
-    private void setOnListener(RelativeLayout musicBar) {
+    private void setOnListener(final RelativeLayout musicBar) {
         
         // 监听点击播放与暂停
         barPlayOrPauseMusic.setOnClickListener(new View.OnClickListener() {
@@ -263,8 +249,6 @@ public class AudioPagerFragment extends Fragment {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 
-                MusicUtil.saveMusicInfo(position);
-                
                 Intent intent = new Intent(context, AudioPlayerActivity.class);
                 // 传入位置
                 intent.putExtra(AUDIO_POSITION, position);
@@ -276,6 +260,7 @@ public class AudioPagerFragment extends Fragment {
                             Toast.LENGTH_SHORT).show();
                 }
             }
+            
         });
         
         buttonJumpToSearch.setOnClickListener(new View.OnClickListener() {
@@ -300,7 +285,6 @@ public class AudioPagerFragment extends Fragment {
                         new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
             } else {
                 MusicUtil.getDataFromLocal();
-                mediaItems = MusicUtil.mediaItems;
                 // handler发消息
                 handler.sendEmptyMessage(0);
             }
@@ -312,6 +296,9 @@ public class AudioPagerFragment extends Fragment {
         IntentFilter filter = new IntentFilter();
         filter.addAction(MusicPlayerService.UPDATE_VIEW_INFO);
         filter.addAction(MusicPlayerService.SYNC_BUTTON_STATE);
+        filter.addAction(SearchActivity.SYNC_BAR_INFO);
+        filter.addAction(AudioPlayerActivity.SYNC_PRE);
+        filter.addAction(AudioPlayerActivity.SYNC_NEXT);
         context.registerReceiver(mReceiver, filter);
     }
     
@@ -325,9 +312,9 @@ public class AudioPagerFragment extends Fragment {
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
             
-            if ((mediaItems != null) && (mediaItems.size() > 0)) {
+            if ((MusicUtil.mediaItems != null) && (MusicUtil.mediaItems.size() > 0)) {
                 // 有数据 设置设配器 提示文本隐藏
-                AudioPagerAdapter audioPagerAdapter = new AudioPagerAdapter(context);
+                audioPagerAdapter = new AudioPagerAdapter(context);
                 listView.setAdapter(audioPagerAdapter);
                 noMedia.setVisibility(View.GONE);
             } else {
@@ -338,45 +325,6 @@ public class AudioPagerFragment extends Fragment {
             loading.setVisibility(View.GONE);// 隐藏加载进度圈
         }
     };
-    
-    /**
-     * 我的广播类<br />
-     * 接收MusicPlayerService发送的广播更新bar的信息
-     *
-     * @author FairHand
-     */
-    private class MyReceiver extends BroadcastReceiver {
-        
-        @SuppressLint("NewApi")
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            try {
-                if (Objects.requireNonNull(intent.getAction())
-                            .equals(MusicPlayerService.UPDATE_VIEW_INFO)) {
-                    // 获取到下一首歌的信息并更新bar的信息
-                    String name = iMusicPlayerService.getCurrentPlayAudioName();
-                    String artist = iMusicPlayerService.getCurrentPlayAudioArtist();
-                    String album = MusicUtil.getAlbumArt(iMusicPlayerService.getAlbumId());
-                    barMusicName.setText(name);
-                    barMusician.setText(artist);
-                    setMusicImage(album);
-                    barPlayOrPauseMusic.setImageResource(R.drawable.music_bar_pause_selector);
-                } else if (intent.getAction().equals(MusicPlayerService.SYNC_BUTTON_STATE)) {
-                    // 同步bar的播放按钮
-                    if (iMusicPlayerService.isPlaying()) {
-                        barPlayOrPauseMusic.setImageResource(
-                                R.drawable.music_bar_pause_selector);
-                    } else {
-                        barPlayOrPauseMusic.setImageResource(
-                                R.drawable.music_bar_play_selector);
-                    }
-                }
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-            
-        }
-    }
     
     /**
      * 设置bar的专辑图片信息
@@ -400,6 +348,83 @@ public class AudioPagerFragment extends Fragment {
     }
     
     /**
+     * 我的广播类<br />
+     * 接收MusicPlayerService发送的广播更新bar的信息
+     *
+     * @author FairHand
+     */
+    private class MyReceiver extends BroadcastReceiver {
+        
+        @SuppressLint("NewApi")
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            try {
+                switch (Objects.requireNonNull(intent.getAction())) {
+                    case MusicPlayerService.UPDATE_VIEW_INFO:// 自动切歌时获取到下一首歌的信息并更新bar的信息
+                        String name = iMusicPlayerService.getCurrentPlayAudioName();
+                        String artist = iMusicPlayerService.getCurrentPlayAudioArtist();
+                        String album = MusicUtil.getAlbumArt(iMusicPlayerService.getAlbumId());
+                        barMusicName.setText(name);
+                        barMusician.setText(artist);
+                        setMusicImage(album);
+                        barPlayOrPauseMusic.setImageResource(R.drawable.music_bar_pause_selector);
+                        audioPagerAdapter.notifyDataSetChanged();// 刷新数据
+                        break;
+                    
+                    case MusicPlayerService.SYNC_BUTTON_STATE:// 仅同步按钮状态或直接更新bar信息
+                        if (intent.getBooleanExtra(
+                                MusicPlayerService.IS_ONLY_SYNC_BUTTON_KEY, false)) {
+                            // 同步bar的播放按钮
+                            if (iMusicPlayerService.isPlaying()) {
+                                barPlayOrPauseMusic.setImageResource(
+                                        R.drawable.music_bar_pause_selector);
+                            } else {
+                                barPlayOrPauseMusic.setImageResource(
+                                        R.drawable.music_bar_play_selector);
+                            }
+                        } else {
+                            // 更新bar信息
+                            syncBarInfo(intent.getIntExtra(
+                                    MusicPlayerService.STATUS_BAR_CHANGED_KEY, 0));
+                        }
+                        
+                        audioPagerAdapter.notifyDataSetChanged();// 更新数据
+                        break;
+                    
+                    case SearchActivity.SYNC_BAR_INFO:
+                    case AudioPlayerActivity.SYNC_PRE:
+                    case AudioPlayerActivity.SYNC_NEXT:// 同步bar信息（通过搜索）
+                        syncBarInfo(intent.getIntExtra(
+                                SearchActivity.POSITION_FOR_SEARCH, 0));
+                        break;
+                    
+                    default:
+                        break;
+                }
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+            
+        }
+    }
+    
+    /**
+     * 同步bar信息
+     */
+    private void syncBarInfo(int position) {
+        MediaItem mediaItem = MusicUtil.mediaItems.get(position);
+        String musicName = mediaItem.getMediaName();
+        String musicArtist = mediaItem.getMusicArtist();
+        String musicAlbum = MusicUtil.getAlbumArt(mediaItem.getAlbumId());
+        barMusicName.setText(musicName);
+        barMusician.setText(musicArtist);
+        setMusicImage(musicAlbum);
+        barPlayOrPauseMusic.setImageResource(R.drawable.music_bar_pause_selector);
+        // 显示bar
+        musicBar.setVisibility(View.VISIBLE);
+    }
+    
+    /**
      * 返回数据回调方法（目的设置bar的播放暂停图标）
      */
     @Override
@@ -408,7 +433,8 @@ public class AudioPagerFragment extends Fragment {
         switch (requestCode) {
             case 999:
                 if (resultCode == RESULT_OK) {
-                    Log.d(TAG, "返回数据已收到！！！！！！！！！！！！");
+                    // 显示bar
+                    musicBar.setVisibility(View.VISIBLE);
                     boolean isPlaying = data.getBooleanExtra(
                             "IS_PLAYING", false);
                     
@@ -426,6 +452,8 @@ public class AudioPagerFragment extends Fragment {
                     barMusician.setText(artist);
                     setMusicImage(albumart);
                 }
+                
+                audioPagerAdapter.notifyDataSetChanged();// 刷新数据
                 break;
             default:
                 break;
@@ -444,7 +472,6 @@ public class AudioPagerFragment extends Fragment {
                 if (grantResults.length > 0 && grantResults[0]
                                                        == PackageManager.PERMISSION_GRANTED) {
                     MusicUtil.getDataFromLocal();
-                    mediaItems = MusicUtil.mediaItems;
                     // handler发消息
                     handler.sendEmptyMessage(0);
                 } else {

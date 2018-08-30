@@ -51,6 +51,7 @@
     <!--底部音乐信息-->
     <include
         android:id="@+id/music_bar"
-        layout="@layout/buttom_music_bar_layout" />
+        layout="@layout/buttom_music_bar_layout"
+        android:visibility="gone" />
 
 </LinearLayout>
