@@ -1,5 +1,6 @@
 package com.fairhand.mobileplayer.activity;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Build;
@@ -14,6 +15,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -139,10 +141,6 @@ public class SearchActivity extends AppCompatActivity {
                 
                 startActivity(intent);
                 
-                // 暂且先重置位置（日后处理）
-                SaveCacheUtil.putCurrentPosition(SearchActivity.this,
-                        "POSITION_KEY", -1);
-                
                 // 发送广播同步Bar音乐信息
                 Intent syncIntent = new Intent(SYNC_BAR_INFO);
                 syncIntent.putExtra(POSITION_FOR_SEARCH, position);
@@ -197,6 +195,22 @@ public class SearchActivity extends AppCompatActivity {
         return true;
     }
     
+    
+    /**
+     * 隐藏键盘
+     */
+    private void hideKeyBoard() {
+        // 得到InputMethodManager的实例
+        InputMethodManager manager =
+                (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        assert manager != null;
+        if (manager.isActive()) {
+            // 如果开启,将其关闭
+            manager.toggleSoftInput(InputMethodManager.SHOW_IMPLICIT,
+                    InputMethodManager.HIDE_NOT_ALWAYS);
+        }
+    }
+    
     /**
      * 菜单项点击事件
      */
@@ -205,6 +219,9 @@ public class SearchActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             case android.R.id.home:// 返回
                 MusicUtil.getDataFromLocal();
+                // 暂且先重置位置（日后处理）
+                SaveCacheUtil.putCurrentPosition(this, "POSITION_KEY", -1);
+                hideKeyBoard();
                 finish();
                 break;
             default:
@@ -216,6 +233,8 @@ public class SearchActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         MusicUtil.getDataFromLocal();
+        // 暂且先重置位置（日后处理）
+        SaveCacheUtil.putCurrentPosition(this, "POSITION_KEY", -1);
         super.onBackPressed();
     }
 }

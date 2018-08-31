@@ -26,4 +26,15 @@
         android:id="@+id/loading_face"
         layout="@layout/loading_face" />
 
+    <TextView
+        android:id="@+id/bright_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:drawableTop="@drawable/ic_brightness_6_white_48dp"
+        android:gravity="center_horizontal"
+        android:textSize="16sp"
+        android:visibility="gone"
+        tools:text="亮度" />
+
 </RelativeLayout>

@@ -387,8 +387,6 @@ public class AudioPagerFragment extends Fragment {
                             syncBarInfo(intent.getIntExtra(
                                     MusicPlayerService.STATUS_BAR_CHANGED_KEY, 0));
                         }
-                        
-                        audioPagerAdapter.notifyDataSetChanged();// 更新数据
                         break;
                     
                     case SearchActivity.SYNC_BAR_INFO:
@@ -421,7 +419,10 @@ public class AudioPagerFragment extends Fragment {
         setMusicImage(musicAlbum);
         barPlayOrPauseMusic.setImageResource(R.drawable.music_bar_pause_selector);
         // 显示bar
-        musicBar.setVisibility(View.VISIBLE);
+        if (musicBar.getVisibility() != View.VISIBLE) {
+            musicBar.setVisibility(View.VISIBLE);
+        }
+        audioPagerAdapter.notifyDataSetChanged();// 刷新数据
     }
     
     /**

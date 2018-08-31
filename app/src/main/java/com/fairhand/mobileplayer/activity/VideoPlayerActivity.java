@@ -19,6 +19,7 @@ import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -203,6 +204,7 @@ public class VideoPlayerActivity extends AppCompatActivity implements View.OnCli
     private Button videoNext;
     private TextView netBufferSpeed;
     private TextView loadingSpeed;
+    private TextView brightnessTextView;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -265,6 +267,7 @@ public class VideoPlayerActivity extends AppCompatActivity implements View.OnCli
         loadingFace = findViewById(R.id.loading_face);
         loadingSpeed = findViewById(R.id.loading_speed);
         netBufferSpeed = findViewById(R.id.net_buffer_speed);
+        brightnessTextView = findViewById(R.id.bright_text);
         
         videoVoice.setOnClickListener(this);
         switchScreen.setOnClickListener(this);
@@ -444,8 +447,7 @@ public class VideoPlayerActivity extends AppCompatActivity implements View.OnCli
                             } else {
                                 netBufferFace.setVisibility(View.GONE);
                             }
-                        }
-                        else {
+                        } else {
                             netBufferFace.setVisibility(View.GONE);
                         }
                     }
@@ -459,7 +461,7 @@ public class VideoPlayerActivity extends AppCompatActivity implements View.OnCli
                 case HIDE_MEDIACONTROLLER:
                     hideMediaController();// 隐藏控制面板
                     break;
-                case SHOW_SPEED :
+                case SHOW_SPEED:
                     // 获取到网速
                     String netSpeedValue =
                             ShowNetSpeedUtil.getNetSpeed(VideoPlayerActivity.this);
@@ -814,7 +816,7 @@ public class VideoPlayerActivity extends AppCompatActivity implements View.OnCli
                         case MediaPlayer.MEDIA_INFO_BUFFERING_END:// 卡顿结束
                             netBufferFace.setVisibility(View.GONE);// 隐藏加载
                             break;
-                        default :
+                        default:
                             break;
                     }
                     return true;
@@ -827,7 +829,9 @@ public class VideoPlayerActivity extends AppCompatActivity implements View.OnCli
     
     /**
      * 更新音量
+     *
      * @param progress 要设置的音量
+     * @param isMute   是否静音
      */
     private void updateVoice(int progress, boolean isMute) {
         if (isMute) {
@@ -857,7 +861,7 @@ public class VideoPlayerActivity extends AppCompatActivity implements View.OnCli
         
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN: // 按下
-                // 记录按下时点坐标Y的值
+                // 记录按下时点坐标的值
                 startY = event.getY();
                 // 获取到当前音量值
                 mVoice = mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
@@ -867,26 +871,70 @@ public class VideoPlayerActivity extends AppCompatActivity implements View.OnCli
                 handler.removeMessages(HIDE_MEDIACONTROLLER);
                 break;
             case MotionEvent.ACTION_MOVE: // 移动
-                // 手指滑动到某个位置的Y坐标
+                // 手指滑动到某个位置的坐标
                 float endY = event.getY();
+                float endX = event.getX();
                 // 滑动的距离
                 float distanceY = startY - endY;
-                // 滑动屏幕的距离：总距离 = 改变的音量：最大音量
-                // 改变的音量 （改变的音量 = (滑动屏幕距离 / 总距离) * 最大音量）
-                float deltaVoice = (distanceY / touchRang) * maxVoice;
-                // 最终音量 （最终音量 = 原来的音量 + 改变的音量）
-                int finalVoice = (int) Math.min(Math.max(mVoice + deltaVoice, 0), maxVoice);
-                // 只有当改变的音量不为0时，才进行更新音量操作
-                if (deltaVoice != 0) {
-                    updateVoice(finalVoice, false);
+                
+                if (endX < screenWidth / 2) {
+                    // 左屏幕，调节亮度
+                    final double FLING_MIN_DISTANCE = 0.5;
+                    final double FLING_MIN_VELOCITY = 0.5;
+                    if (distanceY > 20) {
+                        if (distanceY > FLING_MIN_DISTANCE && Math.abs(distanceY) > FLING_MIN_VELOCITY) {
+                            setBrightness(6);
+                        }
+                        if (distanceY < FLING_MIN_DISTANCE && Math.abs(distanceY) > FLING_MIN_VELOCITY) {
+                            setBrightness(-6);
+                        }
+                        brightnessTextView.setVisibility(View.VISIBLE);
+                    }
+                } else {
+                    // 右屏幕，调节声音
+                    if (distanceY > 20) {
+                        // 滑动屏幕的距离：总距离 = 改变的音量：最大音量
+                        // 改变的音量 （改变的音量 = (滑动屏幕距离 / 总距离) * 最大音量）
+                        float deltaVoice = (distanceY / touchRang) * maxVoice;
+                        // 最终音量 （最终音量 = 原来的音量 + 改变的音量）
+                        int finalVoice = (int) Math.min(Math.max(mVoice + deltaVoice, 0), maxVoice);
+                        // 只有当改变的音量不为0时，才进行更新音量操作
+                        if (deltaVoice != 0) {
+                            updateVoice(finalVoice, false);
+                        }
+                    }
                 }
                 break;
             case MotionEvent.ACTION_UP: // 拿起
                 // 发送消息
                 handler.sendEmptyMessageDelayed(HIDE_MEDIACONTROLLER, 3000);
+                brightnessTextView.setVisibility(View.GONE);
                 break;
         }
         return super.onTouchEvent(event);
+    }
+    
+    /**
+     * 设置屏幕亮度<br />
+     * 0 最暗<br />
+     * 1 最亮
+     *
+     * @param brightness 调节速度
+     */
+    @SuppressLint("SetTextI18n")
+    public void setBrightness(float brightness) {
+        WindowManager.LayoutParams params = getWindow().getAttributes();
+        params.screenBrightness = params.screenBrightness + brightness / 255.0f;
+        if (params.screenBrightness > 1) {
+            // 最高亮度
+            params.screenBrightness = 1;
+        } else if (params.screenBrightness < 0) {
+            // 最低亮度
+            params.screenBrightness = (float) 0;
+        }
+        getWindow().setAttributes(params);
+        float bright = params.screenBrightness;
+        brightnessTextView.setText((int) Math.ceil(bright * 100) + "%");
     }
     
     /**

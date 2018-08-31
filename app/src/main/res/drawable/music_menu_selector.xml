@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@drawable/ic_queue_music_white_24dp" android:state_pressed="false" />
-    <item android:drawable="@drawable/ic_queue_music_blue_grey_400_24dp" android:state_pressed="true" />
+    <item android:drawable="@drawable/music_menu" android:state_pressed="false" />
+    <item android:drawable="@drawable/music_menu_pressed" android:state_pressed="true" />
 </selector>

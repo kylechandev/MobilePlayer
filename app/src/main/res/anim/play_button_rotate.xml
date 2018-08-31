@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--duration：持续200毫秒
+        fromDegrees：从0°开始旋转
+        toDegrees：旋转90°
+        pivotX：旋转中心距离view的左顶点50%距离
+        pivotY：旋转中心距离view的上边缘50%距离
+        android:oneshot="true"：重复一次 -->
+    <rotate
+        android:duration="200"
+        android:fromDegrees="0"
+        android:pivotX="50%"
+        android:pivotY="50%"
+        android:oneshot="true"
+        android:toDegrees="90" />
+
+</set>

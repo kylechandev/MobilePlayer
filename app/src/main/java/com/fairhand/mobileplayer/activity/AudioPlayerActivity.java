@@ -24,6 +24,8 @@ import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.view.animation.LinearInterpolator;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -111,6 +113,11 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
     private IMusicPlayerService iMusicPlayerService;
     
     /**
+     * 播放按钮旋转动画
+     */
+    private Animation rotateAnimation;
+    
+    /**
      * 当前点击音频位置KEY
      */
     private static final String AUDIO_POSITION = "position";
@@ -134,11 +141,6 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
      * 标识是否来自通知
      */
     private boolean isFromNotification;
-    
-    /**
-     * 标识是否正在播放
-     */
-    private boolean isPlaying = true;
     
     /**
      * 判断是否按过上一首或下一首
@@ -186,10 +188,15 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
         objectAnimator = ObjectAnimator.ofFloat(musicImage,
                 "rotation", 0f, 360f);// 旋转动画旋转中心为view的中心
         objectAnimator.setDuration(24000);// 持续24秒
-        objectAnimator.setInterpolator(new LinearInterpolator());// 设置动画匀速
+        LinearInterpolator mLinearInterpolator = new LinearInterpolator();
+        objectAnimator.setInterpolator(mLinearInterpolator);// 设置动画匀速
         objectAnimator.setRepeatCount(ObjectAnimator.INFINITE);// 无限播放
         objectAnimator.setRepeatMode(ObjectAnimator.RESTART);// 重复播放模式
         objectAnimator.start();// 启动动画
+    
+        // 播放按钮点击动画
+        rotateAnimation = AnimationUtils.loadAnimation(this, R.anim.play_button_rotate);
+        rotateAnimation.setInterpolator(mLinearInterpolator);// 平滑
         
     }
     
@@ -214,7 +221,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
             unbindService(mServiceConnection);
             mServiceConnection = null;
         }
-    
+        
         super.onDestroy();
     }
     
@@ -273,12 +280,8 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
                 handlePreOrNextMusic(false);
                 break;
             case R.id.pause_or_play_music:// 暂停or播放音乐
+                pauseOrPlayMusic.startAnimation(rotateAnimation);
                 handlePauseOrPlayMusic(false);
-                try {
-                    isPlaying = iMusicPlayerService.isPlaying();
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
                 break;
             case R.id.next_music:// 下一首
                 handlePreOrNextMusic(true);
@@ -418,8 +421,6 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
                         // 当前正在播放的音乐位置
                         int currentPlayingMusicPosition = SaveCacheUtil.getCurrentPosition(
                                 AudioPlayerActivity.this, "POSITION_KEY");
-                        
-                        Log.d(TAG, "为什么？？？" + currentPlayingMusicPosition);
                         
                         if (currentPlayingMusicPosition != position) {
                             iMusicPlayerService.openAudio(position);
@@ -826,7 +827,6 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
      * @param isPlaying 是否在播放
      */
     private void backData(boolean isPlaying) {
-        Log.d(TAG, "准备返回数据啦啦啦啦啦啦");
         Intent backDataIntent = new Intent();
         backDataIntent.putExtra("IS_PLAYING", isPlaying);
         
