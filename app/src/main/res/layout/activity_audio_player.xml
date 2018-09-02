@@ -78,7 +78,8 @@
             android:id="@+id/music_volumn_cotroller"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:visibility="gone">
 
             <Button
                 android:layout_width="18dp"
@@ -110,7 +111,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_above="@+id/bottom_controller"
-        android:layout_below="@+id/top_controller">
+        android:layout_below="@+id/top_controller"
+        android:layout_margin="6dp">
 
         <!--歌词-->
         <com.fairhand.mobileplayer.widget.CustomLyricView

@@ -1,6 +1,7 @@
 package com.fairhand.mobileplayer.pager;
 
 import android.Manifest;
+import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -27,8 +28,10 @@ import android.support.v4.graphics.drawable.RoundedBitmapDrawable;
 import android.support.v4.graphics.drawable.RoundedBitmapDrawableFactory;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -62,7 +65,7 @@ public class AudioPagerFragment extends Fragment {
     
     private static final String TAG = AudioPagerFragment.class.getSimpleName();
     
-    private ListView listView;
+    private ListView mListView;
     
     private TextView noMedia;
     
@@ -85,6 +88,11 @@ public class AudioPagerFragment extends Fragment {
     private AudioPagerAdapter audioPagerAdapter;
     
     /**
+     * ListView的HeaderView
+     */
+    private View headViewForList;
+    
+    /**
      * 当前点击音频位置
      */
     private static final String AUDIO_POSITION = "position";
@@ -102,6 +110,28 @@ public class AudioPagerFragment extends Fragment {
     private View rootView;
     
     private BroadcastReceiver mReceiver;
+    
+    /**
+     * 手指按下时Y坐标
+     */
+    private float mFirstY;
+    
+    /**
+     * 手指移动时Y坐标
+     */
+    private float mCurrentY;
+    
+    /**
+     * 滑动状态（0向下 1向上）
+     */
+    private int slideStatus;
+    
+    /**
+     * HeaderVier是否已显示
+     */
+    private boolean mShow = true;
+    
+    private ObjectAnimator mAnimator;
     
     /**
      * 当Activity与Fragment创建关联时调用
@@ -140,7 +170,7 @@ public class AudioPagerFragment extends Fragment {
         }
         
         musicBar = rootView.findViewById(R.id.music_bar);
-        listView = rootView.findViewById(R.id.audio_list_view);
+        mListView = rootView.findViewById(R.id.audio_list_view);
         noMedia = rootView.findViewById(R.id.no_music);
         loading = rootView.findViewById(R.id.loading);
         barMusicName = rootView.findViewById(R.id.bar_music_name);
@@ -150,7 +180,8 @@ public class AudioPagerFragment extends Fragment {
         barPlayOrPauseMusic = rootView.findViewById(R.id.bar_play_or_pause_music);
         buttonJumpToSearch = rootView.findViewById(R.id.button_jump_to_search);
         
-        listView.setTextFilterEnabled(true);// 开启ListView的过滤功能
+        mListView.setTextFilterEnabled(true);// 开启ListView的过滤功能
+        mListView.addHeaderView(headViewForList);// 为ListView设置HeaderView
         
         setOnListener(musicBar);
         
@@ -199,6 +230,7 @@ public class AudioPagerFragment extends Fragment {
     /**
      * 设置监听
      */
+    @SuppressLint("ClickableViewAccessibility")
     private void setOnListener(final RelativeLayout musicBar) {
         
         // 监听点击播放与暂停
@@ -245,13 +277,17 @@ public class AudioPagerFragment extends Fragment {
             }
         });
         
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 
+                int headerViewCount = mListView.getHeaderViewsCount();// 得到HeaderView的个数
+                
+                int newPosition = position - headerViewCount;// 获取除去HeaderView的position
+                
                 Intent intent = new Intent(context, AudioPlayerActivity.class);
                 // 传入位置
-                intent.putExtra(AUDIO_POSITION, position);
+                intent.putExtra(AUDIO_POSITION, newPosition);
                 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                     startActivityForResult(intent, 999);
@@ -260,7 +296,34 @@ public class AudioPagerFragment extends Fragment {
                             Toast.LENGTH_SHORT).show();
                 }
             }
-            
+        });
+        
+        mListView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:// 按下
+                        mFirstY = event.getY();
+                        break;
+                    case MotionEvent.ACTION_MOVE:// 移动
+                        mCurrentY = event.getY();
+                        if (mCurrentY - mFirstY > 24) {
+                            slideStatus = 0;// 向下滑动
+                            if (!mShow) {
+                                searchAnim(slideStatus);// 显示
+                                mShow = true;
+                            }
+                        } else if (mCurrentY - mFirstY < -120) {
+                            slideStatus = 1;// 向上滑动
+                            if (mShow) {
+                                searchAnim(slideStatus);// 隐藏
+                                mShow = false;
+                            }
+                        }
+                        break;
+                }
+                return false;
+            }
         });
         
         buttonJumpToSearch.setOnClickListener(new View.OnClickListener() {
@@ -273,6 +336,32 @@ public class AudioPagerFragment extends Fragment {
     }
     
     /**
+     * 搜索框的显示、隐藏动画
+     *
+     * @param slideStatus 滑动方向（0向下显示 1向上隐藏）
+     */
+    private void searchAnim(int slideStatus) {
+        if (mAnimator != null && mAnimator.isRunning()) {
+            mAnimator.cancel();
+        }
+        if (slideStatus == 0) {
+            mAnimator = ObjectAnimator.ofFloat(
+                    buttonJumpToSearch,// 要操作的控件
+                    "translationY",// 要做的动画属性
+                    buttonJumpToSearch.getTranslationY(),// 在Y轴的偏移量
+                    0);
+        } else {
+            mAnimator = ObjectAnimator.ofFloat(
+                    buttonJumpToSearch,
+                    "translationY",
+                    buttonJumpToSearch.getTranslationY(),
+                    -buttonJumpToSearch.getHeight());
+        }
+        mAnimator.start();
+        
+    }
+    
+    /**
      * 初始化数据
      */
     private void initData() {
@@ -281,8 +370,10 @@ public class AudioPagerFragment extends Fragment {
             if (ContextCompat.checkSelfPermission(context,
                     Manifest.permission.WRITE_EXTERNAL_STORAGE)
                         != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(Objects.requireNonNull(getActivity()),
-                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+                ActivityCompat.requestPermissions(
+                        Objects.requireNonNull(getActivity()),
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        1);
             } else {
                 MusicUtil.getDataFromLocal();
                 // handler发消息
@@ -290,6 +381,11 @@ public class AudioPagerFragment extends Fragment {
             }
         }
         
+        // 为ListView设置HeaderView
+        headViewForList = new View(context);
+        headViewForList.setLayoutParams(new AbsListView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                (int) getResources().getDimension(R.dimen.list_view_header_view)));
         
         // 注册广播
         mReceiver = new MyReceiver();
@@ -315,7 +411,7 @@ public class AudioPagerFragment extends Fragment {
             if ((MusicUtil.mediaItems != null) && (MusicUtil.mediaItems.size() > 0)) {
                 // 有数据 设置设配器 提示文本隐藏
                 audioPagerAdapter = new AudioPagerAdapter(context);
-                listView.setAdapter(audioPagerAdapter);
+                mListView.setAdapter(audioPagerAdapter);
                 noMedia.setVisibility(View.GONE);
             } else {
                 // 没有数据 提示文本显示
@@ -333,7 +429,8 @@ public class AudioPagerFragment extends Fragment {
         Bitmap bitmap;
         RoundedBitmapDrawable roundedBitmap;
         if (albumArt == null) {
-            bitmap = BitmapFactory.decodeResource(getResources(), R.drawable.default_play_image);
+            bitmap = BitmapFactory.decodeResource(
+                    getResources(), R.drawable.default_play_image);
             roundedBitmap = RoundedBitmapDrawableFactory.create(getResources(), bitmap);
             roundedBitmap.setAntiAlias(true);// 抗锯齿
             roundedBitmap.setCornerRadius(81);// 圆角度数
@@ -360,20 +457,22 @@ public class AudioPagerFragment extends Fragment {
         public void onReceive(Context context, Intent intent) {
             try {
                 switch (Objects.requireNonNull(intent.getAction())) {
-                    case MusicPlayerService.UPDATE_VIEW_INFO:// 自动切歌时获取到下一首歌的信息并更新bar的信息
+                    case MusicPlayerService.UPDATE_VIEW_INFO:// 自动切歌时更新bar的信息
                         String name = iMusicPlayerService.getCurrentPlayAudioName();
                         String artist = iMusicPlayerService.getCurrentPlayAudioArtist();
                         String album = MusicUtil.getAlbumArt(iMusicPlayerService.getAlbumId());
                         barMusicName.setText(name);
                         barMusician.setText(artist);
                         setMusicImage(album);
-                        barPlayOrPauseMusic.setImageResource(R.drawable.music_bar_pause_selector);
+                        barPlayOrPauseMusic.setImageResource(
+                                R.drawable.music_bar_pause_selector);
                         audioPagerAdapter.notifyDataSetChanged();// 刷新数据
                         break;
                     
                     case MusicPlayerService.SYNC_BUTTON_STATE:// 仅同步按钮状态或直接更新bar信息
                         if (intent.getBooleanExtra(
-                                MusicPlayerService.IS_ONLY_SYNC_BUTTON_KEY, false)) {
+                                MusicPlayerService.IS_ONLY_SYNC_BUTTON_KEY,
+                                false)) {
                             // 同步bar的播放按钮
                             if (iMusicPlayerService.isPlaying()) {
                                 barPlayOrPauseMusic.setImageResource(
@@ -385,7 +484,8 @@ public class AudioPagerFragment extends Fragment {
                         } else {
                             // 更新bar信息
                             syncBarInfo(intent.getIntExtra(
-                                    MusicPlayerService.STATUS_BAR_CHANGED_KEY, 0));
+                                    MusicPlayerService.STATUS_BAR_CHANGED_KEY,
+                                    0));
                         }
                         break;
                     
@@ -440,9 +540,11 @@ public class AudioPagerFragment extends Fragment {
                             "IS_PLAYING", false);
                     
                     if (isPlaying) {
-                        barPlayOrPauseMusic.setImageResource(R.drawable.music_bar_pause_selector);
+                        barPlayOrPauseMusic.setImageResource(
+                                R.drawable.music_bar_pause_selector);
                     } else {
-                        barPlayOrPauseMusic.setImageResource(R.drawable.music_bar_play_selector);
+                        barPlayOrPauseMusic.setImageResource(
+                                R.drawable.music_bar_play_selector);
                     }
                     
                     // 更新bar的歌曲信息
@@ -470,8 +572,8 @@ public class AudioPagerFragment extends Fragment {
                                            @NonNull int[] grantResults) {
         switch (requestCode) {
             case 1:
-                if (grantResults.length > 0 && grantResults[0]
-                                                       == PackageManager.PERMISSION_GRANTED) {
+                if (grantResults.length > 0 &&
+                            grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     MusicUtil.getDataFromLocal();
                     // handler发消息
                     handler.sendEmptyMessage(0);

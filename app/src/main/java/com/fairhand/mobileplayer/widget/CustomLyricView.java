@@ -2,10 +2,11 @@ package com.fairhand.mobileplayer.widget;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
+import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 
+import com.fairhand.mobileplayer.R;
 import com.fairhand.mobileplayer.entity.Lyric;
 
 import java.util.ArrayList;
@@ -43,27 +44,6 @@ public class CustomLyricView extends android.support.v7.widget.AppCompatTextView
     private int index;
     
     /**
-     * 设置每句歌词的行高
-     */
-    private int lyricHeight = 128;
-    
-    /**
-     * 当前播放进度
-     */
-    private int currentPositon;
-    
-    /**
-     * 高亮显示的时间
-     */
-    private long highLightTime;
-    
-    /**
-     * 时间戳（到高亮某句歌词的时刻）
-     */
-    private long timePoint;
-    
-    
-    /**
      * 设置歌词列表
      */
     public void setLyrics(ArrayList<Lyric> lyrics) {
@@ -99,26 +79,18 @@ public class CustomLyricView extends android.support.v7.widget.AppCompatTextView
     private void initView() {
         // 创建画笔
         mCurrentLyricPaint = new Paint();
-        mCurrentLyricPaint.setColor(Color.RED);
-        mCurrentLyricPaint.setTextSize(64);
+        mCurrentLyricPaint.setColor(ContextCompat.getColor(getContext(), R.color.colorAccent));
+        mCurrentLyricPaint.setTextSize(42);
         mCurrentLyricPaint.setAntiAlias(true);// 抗锯齿
         mCurrentLyricPaint.setTextAlign(Paint.Align.CENTER);// 设置居中对齐
         
         mWhitePaint = new Paint();
-        mWhitePaint.setColor(Color.WHITE);
-        mWhitePaint.setTextSize(64);
+        mWhitePaint.setColor(ContextCompat.getColor(getContext(), R.color.light_gray));
+        mWhitePaint.setTextSize(42);
         mWhitePaint.setAntiAlias(true);// 抗锯齿
         mWhitePaint.setTextAlign(Paint.Align.CENTER);// 设置居中对齐
         
         lyrics = new ArrayList<>();
-        for (int i = 0; i < 1000; i++) {
-            Lyric lyric = new Lyric();
-            // 把歌词添加到集合中
-            lyrics.add(lyric);
-            lyric.setTimePoint(1000 * i);
-            lyric.setHighLightTime(1500 + i);
-            lyric.setContent(i + "qaqaqaqaqaqaq" + i);
-        }
     }
     
     @Override
@@ -139,6 +111,8 @@ public class CustomLyricView extends android.support.v7.widget.AppCompatTextView
             
             // 绘制前面部分
             int tempY = height / 2;
+            // 设置每句歌词的行高
+            int lyricHeight = 81;
             for (int i = index - 1; i >= 0; i--) {
                 // 每一句歌词
                 String preLyric = lyrics.get(i).getContent();
@@ -170,7 +144,6 @@ public class CustomLyricView extends android.support.v7.widget.AppCompatTextView
      * 根据当前播放位置，计算显示下一句高亮歌词
      */
     public void setShowNextLyric(int currentPositon) {
-        this.currentPositon = currentPositon;
         if ((lyrics == null) || (lyrics.size() == 0))
             return;
         
@@ -180,8 +153,6 @@ public class CustomLyricView extends android.support.v7.widget.AppCompatTextView
                 if (currentPositon >= lyrics.get(tempIndex).getTimePoint()) {
                     // 得到当前正在播放的歌词
                     index = tempIndex;
-                    highLightTime = lyrics.get(index).getHighLightTime();
-                    timePoint = lyrics.get(index).getTimePoint();
                 }
             }
         }
@@ -191,19 +162,3 @@ public class CustomLyricView extends android.support.v7.widget.AppCompatTextView
         //        postInvalidate(); 子线程
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

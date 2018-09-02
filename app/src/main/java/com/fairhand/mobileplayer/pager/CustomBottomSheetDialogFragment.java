@@ -23,9 +23,7 @@ import java.util.Objects;
  */
 public class CustomBottomSheetDialogFragment extends BottomSheetDialogFragment {
     
-    private ArrayAdapter<String> adapter;
-    
-    String[] strings = { "张三", "李思思", "王五五", "刘顺" };
+    String[] strings = {"张三", "李思思", "王五五", "刘顺"};
     
     @NonNull
     @Override
@@ -40,12 +38,16 @@ public class CustomBottomSheetDialogFragment extends BottomSheetDialogFragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
-                             @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
         
-        View view = inflater.inflate(R.layout.bottom_dialog_layout, container, false);
+        View view = inflater.inflate(R.layout.bottom_dialog_layout,
+                container, false);
         ListView listview = view.findViewById(R.id.listview);
         
-        adapter = new ArrayAdapter<>(Objects.requireNonNull(getContext()), android.R.layout.simple_list_item_1, strings);
+        ArrayAdapter<String> adapter =
+                new ArrayAdapter<>(Objects.requireNonNull(getContext()),
+                        android.R.layout.simple_list_item_1, strings);
         listview.setAdapter(adapter);
         
         return view;

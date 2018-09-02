@@ -192,7 +192,7 @@ public class VideoPagerFragment extends Fragment {
                 ContentResolver resolver = Objects.requireNonNull(getContext()).getContentResolver();
                 Uri uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
                 String[] objs = {
-                        MediaStore.Video.Media.DISPLAY_NAME,// 视频文件在上的sdcard的名字
+                        MediaStore.Video.Media.TITLE,// 视频名字
                         MediaStore.Video.Media.DURATION,// 视频总时长
                         MediaStore.Video.Media.SIZE,// 视频的文件大小
                         MediaStore.Video.Media.DATA,// 视频的绝对地址

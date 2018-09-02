@@ -4,36 +4,11 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <com.fairhand.mobileplayer.widget.CustomImageButton
-        android:id="@+id/button_jump_to_search"
-        android:layout_width="match_parent"
-        android:layout_height="32dp"
-        android:layout_marginLeft="8dp"
-        android:layout_marginRight="8dp"
-        android:background="@drawable/search_button"
-        android:drawableStart="@drawable/ic_search_blue_grey_400_18dp"
-        android:drawableTint="@android:color/darker_gray"
-        android:text="@string/search"
-        android:textColor="@android:color/darker_gray"
-        android:textStyle="bold" />
-
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="6dp"
         android:layout_weight="1"
         android:background="@android:color/white">
-
-        <android.support.v7.widget.Toolbar
-            android:id="@+id/toolbar"
-            style="@style/Toolbar.MyStyle"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="@android:color/white"
-            android:fitsSystemWindows="true"
-            android:visibility="gone">
-
-        </android.support.v7.widget.Toolbar>
 
         <ListView
             android:id="@+id/audio_list_view"
@@ -41,6 +16,19 @@
             android:layout_height="wrap_content"
             android:divider="@drawable/list_item_divider"
             android:dividerHeight="0.2dp" />
+
+        <com.fairhand.mobileplayer.widget.CustomImageButton
+            android:id="@+id/button_jump_to_search"
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            android:layout_marginLeft="5dp"
+            android:layout_marginRight="5dp"
+            android:background="@drawable/search_button"
+            android:drawableStart="@drawable/ic_search_blue_grey_400_18dp"
+            android:drawableTint="@android:color/white"
+            android:text="@string/search"
+            android:textColor="@android:color/white"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/no_music"

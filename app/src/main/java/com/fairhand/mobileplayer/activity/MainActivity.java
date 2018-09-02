@@ -47,8 +47,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     
     private Button navigation;
     
-    private Button history;
-    
     /**
      * 存放Tab的标题
      */
@@ -104,8 +102,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         
         navigation = findViewById(R.id.navigation);
         
-        history = findViewById(R.id.history);
-        
         mFragments = new ArrayList<>();
         
         tabNames = new String[]{"视频", "音乐", "网络"};
@@ -120,7 +116,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void initEvents() {
         
         navigation.setOnClickListener(this);
-        history.setOnClickListener(this);
         
         // TabLayout的监听
         mTabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
@@ -174,14 +169,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         return false;
                     }
                 });
-        
     }
     
     /**
      * 初始化ViewPager
      */
     private void initViewPages() {
-        
+    
         // 初始化四个布局
         final Fragment videoFragment = new VideoPagerFragment();
         Fragment audioFragment = new AudioPagerFragment();
@@ -227,8 +221,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (v.getId()) {
             case R.id.navigation:// 导航
                 mDrawerLayout.openDrawer(GravityCompat.START);// 点击打开导航菜单
-                break;
-            case R.id.history:// 播放历史
                 break;
             default:
                 break;

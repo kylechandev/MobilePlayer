@@ -14,6 +14,7 @@ import android.graphics.PorterDuff;
 import android.media.AudioManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -40,6 +41,7 @@ import com.fairhand.mobileplayer.ActivityCollector;
 import com.fairhand.mobileplayer.IMusicPlayerService;
 import com.fairhand.mobileplayer.R;
 import com.fairhand.mobileplayer.service.MusicPlayerService;
+import com.fairhand.mobileplayer.utils.AnalysisLyricUtil;
 import com.fairhand.mobileplayer.utils.MusicUtil;
 import com.fairhand.mobileplayer.utils.SaveCacheUtil;
 import com.fairhand.mobileplayer.utils.TimeConvertUtil;
@@ -48,6 +50,9 @@ import com.fairhand.mobileplayer.widget.CustomLyricView;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+
+import java.io.File;
+import java.util.Objects;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -148,6 +153,11 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
     private boolean isPressPreOrNext = false;
     
     /**
+     * 判断当前是否处于歌词界面
+     */
+    private boolean isLyricFace;
+    
+    /**
      * 布局组件
      */
     private LinearLayout musicVolumnCotroller;
@@ -193,7 +203,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
         objectAnimator.setRepeatCount(ObjectAnimator.INFINITE);// 无限播放
         objectAnimator.setRepeatMode(ObjectAnimator.RESTART);// 重复播放模式
         objectAnimator.start();// 启动动画
-    
+        
         // 播放按钮点击动画
         rotateAnimation = AnimationUtils.loadAnimation(this, R.anim.play_button_rotate);
         rotateAnimation.setInterpolator(mLinearInterpolator);// 平滑
@@ -299,21 +309,31 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
                 }
                 finish();
                 break;
-            case R.id.music_info_and_lyric:// 歌词（假的）
-                if (customLyricView.getVisibility() == View.GONE) {
-                    // 显示歌词，隐藏音乐转盘，显示音量控制
-                    customLyricView.setVisibility(View.VISIBLE);
-                    musicImage.setVisibility(View.GONE);
-                    musicVolumnCotroller.setVisibility(View.VISIBLE);
-                } else {
-                    // 隐藏歌词，显示音乐转盘，隐藏音量控制
-                    customLyricView.setVisibility(View.GONE);
-                    musicImage.setVisibility(View.VISIBLE);
-                    musicVolumnCotroller.setVisibility(View.GONE);
-                }
+            case R.id.music_info_and_lyric:// 歌词
+                isLyricFace = customLyricView.getVisibility() == View.GONE;
+                handleMusicImageAndLyric(isLyricFace);
                 break;
             default:
                 break;
+        }
+    }
+    
+    /**
+     * 处理展示专辑转盘还是歌词
+     *
+     * @param isLyric 是否是显示歌词
+     */
+    private void handleMusicImageAndLyric(boolean isLyric) {
+        if (isLyric) {
+            // 显示歌词，隐藏音乐转盘，显示音量控制
+            customLyricView.setVisibility(View.VISIBLE);
+            musicImage.setVisibility(View.GONE);
+            musicVolumnCotroller.setVisibility(View.VISIBLE);
+        } else {
+            // 隐藏歌词，显示音乐转盘，隐藏音量控制
+            customLyricView.setVisibility(View.GONE);
+            musicImage.setVisibility(View.VISIBLE);
+            musicVolumnCotroller.setVisibility(View.GONE);
         }
     }
     
@@ -324,6 +344,8 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
      */
     private void handlePreOrNextMusic(boolean isNext) {
         try {
+            handleMusicImageAndLyric(isLyricFace);
+            Log.d(TAG, "你看看 " + isLyricFace);
             Intent syncPreOrNextIntent = new Intent();
             // 标记按过上一首or下一首
             isPressPreOrNext = true;
@@ -364,6 +386,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
         mReceiver = new MyReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction(MusicPlayerService.SYNC_BUTTON_STATE);
+        filter.addAction(MusicPlayerService.UPDATE_VIEW_INFO);
         registerReceiver(mReceiver, filter);
         
         new Thread(new Runnable() {
@@ -489,7 +512,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
              */
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-            
+                
             }
             
             /**
@@ -497,7 +520,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
              */
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-            
+                
             }
         });
         
@@ -519,7 +542,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
              */
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-            
+                
             }
             
             /**
@@ -527,7 +550,7 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
              */
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-            
+                
             }
         });
     }
@@ -594,7 +617,6 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
                                 ContextCompat.getColor(getBaseContext(),
                                         R.color.progress_thumb), PorterDuff.Mode.SRC_ATOP);
                     }
-                    
                     break;
                 
                 case UPDATE_MUSIC_UI:// 更新音乐UI
@@ -653,7 +675,56 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
     public void showData(String messageEvent) {
         checkPlayMode();
         showViewData();
-        handler.sendEmptyMessage(SHOW_LYRIC);// 发送消息显示并同步歌词
+        showLyric();
+    }
+    
+    /**
+     * 显示歌词
+     */
+    private void showLyric() {
+        // 传歌词文件
+        try {
+            String path = iMusicPlayerService.getPreparePlayAudioDataPath();
+            path = path.substring(0, path.lastIndexOf("."));
+            File file;
+            file = new File(path + "lrc");
+            if (!file.exists()) {
+                file = new File(path + "txt");
+                if (!file.exists()) {
+                    path = iMusicPlayerService.getCurrentPlayAudioName();
+                    file = new File(Environment.getExternalStorageDirectory(),
+                            "i Music/Lyrics");
+                    File[] files = file.listFiles();
+                    for (File f : files) {
+                        String fileName = f.getName();
+                        if (fileName.contains(path)) {
+                            file = new File(Environment.getExternalStorageDirectory(),
+                                    "i Music/Lyrics/" + fileName);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            if (file.exists()) {
+                AnalysisLyricUtil.readLyricFile(file);// 读取解析歌词
+            }
+            
+            customLyricView.setLyrics(AnalysisLyricUtil.getLyrics());// 设置歌词
+            
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+        
+        // 若存在歌词
+        if (AnalysisLyricUtil.isExistsLyric()) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    handler.sendEmptyMessage(SHOW_LYRIC);// 发送消息显示并同步歌词
+                }
+            }).start();
+        }
     }
     
     /**
@@ -756,15 +827,17 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
      * 设置音乐专辑图片
      */
     private void setMusicImage() throws RemoteException {
-        //  设置专辑图片
         Bitmap bitmap;
         String albumArt = MusicUtil.getAlbumArt(iMusicPlayerService.getAlbumId());
         if (albumArt == null) {
             Glide.with(getBaseContext()).load(R.drawable.default_play_image).into(musicImage);
-            musicImage.setVisibility(View.VISIBLE);
         } else {
             bitmap = BitmapFactory.decodeFile(albumArt);
             Glide.with(getBaseContext()).load(bitmap).into(musicImage);
+        }
+        if (isLyricFace) {
+            musicImage.setVisibility(View.GONE);
+        } else {
             musicImage.setVisibility(View.VISIBLE);
         }
     }
@@ -863,18 +936,27 @@ public class AudioPlayerActivity extends BaseActivity implements View.OnClickLis
      */
     public class MyReceiver extends BroadcastReceiver {
         
+        @RequiresApi(api = Build.VERSION_CODES.KITKAT)
         @Override
         public void onReceive(Context context, Intent intent) {
-            // 同步bar的播放按钮
             try {
-                if (iMusicPlayerService.isPlaying()) {
-                    pauseOrPlayMusic.setBackgroundResource(R.drawable.music_pause_selector);
-                } else {
-                    pauseOrPlayMusic.setBackgroundResource(R.drawable.music_play_selector);
+                if (Objects.requireNonNull(intent.getAction())
+                            .equals(MusicPlayerService.SYNC_BUTTON_STATE)) {
+                    // 同步bar的播放按钮
+                    if (iMusicPlayerService.isPlaying()) {
+                        pauseOrPlayMusic.setBackgroundResource(R.drawable.music_pause_selector);
+                    } else {
+                        pauseOrPlayMusic.setBackgroundResource(R.drawable.music_play_selector);
+                    }
+                } else if ((intent.getAction().equals(MusicPlayerService.UPDATE_VIEW_INFO))) {
+                    objectAnimator.cancel();
+                    setMusicImage();
+                    objectAnimator.start();
                 }
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
+            
         }
     }
     
